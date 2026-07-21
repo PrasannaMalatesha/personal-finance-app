@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Env files (except examples)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Test artifacts
+coverage/
+.nyc_output/
+
+# TypeScript incremental
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Editors
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# Local tooling context (not part of the product)
+CLAUDE.md
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local docker volume bind mounts
+data/
