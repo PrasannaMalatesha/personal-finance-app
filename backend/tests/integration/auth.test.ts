@@ -1,0 +1,244 @@
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import request from 'supertest';
+import type { Pool } from 'pg';
+import type { Express } from 'express';
+import { createApp } from '../../src/app';
+import { buildContainer } from '../../src/container';
+import logger from '../../src/logger';
+import { createTestPool, truncateAll } from './helpers/testDb';
+
+function findCookie(setCookie: string[] | undefined, name: string): string | undefined {
+  return setCookie?.find((c) => c.startsWith(`${name}=`));
+}
+
+describe('Auth flow (integration)', () => {
+  let pool: Pool;
+  let app: Express;
+
+  beforeAll(() => {
+    pool = createTestPool();
+    const container = buildContainer(pool, logger, {
+      jwtAccessSecret: process.env.JWT_ACCESS_SECRET!,
+      jwtRefreshSecret: process.env.JWT_REFRESH_SECRET!,
+    });
+    app = createApp(container);
+  });
+
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  beforeEach(async () => {
+    await truncateAll(pool);
+  });
+
+  describe('POST /api/v1/auth/signup', () => {
+    it('creates a user and sets access + refresh cookies', async () => {
+      const res = await request(app).post('/api/v1/auth/signup').send({
+        email: 'alice@example.com',
+        password: 'password123',
+        baseCurrency: 'INR',
+      });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.user).toMatchObject({
+        email: 'alice@example.com',
+        baseCurrency: 'INR',
+      });
+      expect(res.body.data.user.id).toMatch(/^[0-9a-f-]{36}$/);
+
+      const cookies = res.headers['set-cookie'] as unknown as string[];
+      expect(findCookie(cookies, 'accessToken')).toBeDefined();
+      expect(findCookie(cookies, 'refreshToken')).toBeDefined();
+    });
+
+    it('returns 409 on duplicate email (sequential)', async () => {
+      const body = {
+        email: 'alice@example.com',
+        password: 'password123',
+        baseCurrency: 'USD',
+      };
+      await request(app).post('/api/v1/auth/signup').send(body);
+      const res = await request(app).post('/api/v1/auth/signup').send(body);
+
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('CONFLICT');
+    });
+
+    it('returns 409 (not 500) on concurrent duplicate signup', async () => {
+      const body = {
+        email: 'race@example.com',
+        password: 'password123',
+        baseCurrency: 'USD',
+      };
+      const [r1, r2] = await Promise.all([
+        request(app).post('/api/v1/auth/signup').send(body),
+        request(app).post('/api/v1/auth/signup').send(body),
+      ]);
+
+      const statuses = [r1.status, r2.status].sort();
+      expect(statuses).toEqual([201, 409]);
+    });
+
+    it('returns 400 on invalid input', async () => {
+      const res = await request(app).post('/api/v1/auth/signup').send({
+        email: 'not-an-email',
+        password: 'short',
+        baseCurrency: 'XYZ',
+      });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+  });
+
+  describe('GET /api/v1/auth/me', () => {
+    it('returns 401 without token', async () => {
+      const res = await request(app).get('/api/v1/auth/me');
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('UNAUTHENTICATED');
+    });
+
+    it('returns the user with a valid access cookie', async () => {
+      const signup = await request(app).post('/api/v1/auth/signup').send({
+        email: 'bob@example.com',
+        password: 'password123',
+        baseCurrency: 'EUR',
+      });
+      const cookies = signup.headers['set-cookie'] as unknown as string[];
+
+      const res = await request(app).get('/api/v1/auth/me').set('Cookie', cookies);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.email).toBe('bob@example.com');
+      expect(res.body.data.baseCurrency).toBe('EUR');
+    });
+  });
+
+  describe('POST /api/v1/auth/login', () => {
+    beforeEach(async () => {
+      await request(app).post('/api/v1/auth/signup').send({
+        email: 'carol@example.com',
+        password: 'password123',
+        baseCurrency: 'GBP',
+      });
+    });
+
+    it('succeeds with correct credentials', async () => {
+      const res = await request(app).post('/api/v1/auth/login').send({
+        email: 'carol@example.com',
+        password: 'password123',
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.user.email).toBe('carol@example.com');
+    });
+
+    it('returns 401 on wrong password (generic message)', async () => {
+      const res = await request(app).post('/api/v1/auth/login').send({
+        email: 'carol@example.com',
+        password: 'wrong-password',
+      });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('UNAUTHENTICATED');
+    });
+
+    it('returns 401 on unknown email (same generic message)', async () => {
+      const res = await request(app).post('/api/v1/auth/login').send({
+        email: 'nobody@example.com',
+        password: 'password123',
+      });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('UNAUTHENTICATED');
+    });
+  });
+
+  describe('POST /api/v1/auth/refresh — rotation', () => {
+    let refreshCookie: string;
+
+    beforeEach(async () => {
+      const signup = await request(app).post('/api/v1/auth/signup').send({
+        email: `refresh-${Date.now()}@example.com`,
+        password: 'password123',
+        baseCurrency: 'USD',
+      });
+      const cookies = signup.headers['set-cookie'] as unknown as string[];
+      refreshCookie = findCookie(cookies, 'refreshToken')!;
+    });
+
+    it('rotates the refresh token', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/refresh')
+        .set('Cookie', refreshCookie);
+
+      expect(res.status).toBe(200);
+      const newCookies = res.headers['set-cookie'] as unknown as string[];
+      const newRefresh = findCookie(newCookies, 'refreshToken');
+      expect(newRefresh).toBeDefined();
+      expect(newRefresh).not.toBe(refreshCookie);
+    });
+
+    it('detects reuse of a revoked token and revokes the whole session', async () => {
+      // First refresh: succeeds and rotates
+      const first = await request(app)
+        .post('/api/v1/auth/refresh')
+        .set('Cookie', refreshCookie);
+      expect(first.status).toBe(200);
+      const newCookies = first.headers['set-cookie'] as unknown as string[];
+      const newRefresh = findCookie(newCookies, 'refreshToken')!;
+
+      // Second refresh with the OLD (now-revoked) cookie: 401 — session theft signal
+      const second = await request(app)
+        .post('/api/v1/auth/refresh')
+        .set('Cookie', refreshCookie);
+      expect(second.status).toBe(401);
+
+      // Third refresh with the NEW cookie also fails — reuse detection revoked ALL user tokens
+      const third = await request(app)
+        .post('/api/v1/auth/refresh')
+        .set('Cookie', newRefresh);
+      expect(third.status).toBe(401);
+    });
+
+    it('returns 401 for an unknown refresh token', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/refresh')
+        .set('Cookie', 'refreshToken=totally-not-a-real-token');
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 401 when no refresh cookie is present', async () => {
+      const res = await request(app).post('/api/v1/auth/refresh');
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe('POST /api/v1/auth/logout', () => {
+    it('revokes the refresh token server-side so a subsequent refresh fails', async () => {
+      const signup = await request(app).post('/api/v1/auth/signup').send({
+        email: 'zoe@example.com',
+        password: 'password123',
+        baseCurrency: 'JPY',
+      });
+      const cookies = signup.headers['set-cookie'] as unknown as string[];
+      const refreshCookie = findCookie(cookies, 'refreshToken')!;
+
+      const logout = await request(app)
+        .post('/api/v1/auth/logout')
+        .set('Cookie', refreshCookie);
+      expect(logout.status).toBe(204);
+
+      const refresh = await request(app)
+        .post('/api/v1/auth/refresh')
+        .set('Cookie', refreshCookie);
+      expect(refresh.status).toBe(401);
+    });
+
+    it('is safe to call without a refresh cookie', async () => {
+      const res = await request(app).post('/api/v1/auth/logout');
+      expect(res.status).toBe(204);
+    });
+  });
+});

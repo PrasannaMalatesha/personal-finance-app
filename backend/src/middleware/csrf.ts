@@ -3,13 +3,11 @@ import { ForbiddenError } from '../errors/AppError';
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-// Auth routes bootstrap cookies — CSRF is not enforceable before login.
-// SameSite=Lax on the refresh cookie is the browser-level defense for /refresh.
-const AUTH_BOOTSTRAP_PATHS = new Set([
-  '/api/v1/auth/signup',
-  '/api/v1/auth/login',
-  '/api/v1/auth/refresh',
-]);
+// All /api/v1/auth/* routes are session bootstrap/management. CSRF isn't
+// enforceable before login (signup/login/refresh) and SameSite=Lax on the
+// refresh cookie is the actual browser-level defense against cross-site
+// forgery for these endpoints.
+const AUTH_PREFIX = '/api/v1/auth/';
 
 export function csrfMiddleware(
   req: Request,
@@ -17,7 +15,7 @@ export function csrfMiddleware(
   next: NextFunction,
 ): void {
   if (!UNSAFE_METHODS.has(req.method)) return next();
-  if (AUTH_BOOTSTRAP_PATHS.has(req.path)) return next();
+  if (req.path.startsWith(AUTH_PREFIX)) return next();
 
   const cookieToken = req.cookies?.csrf as string | undefined;
   const headerToken = req.get('X-CSRF-Token');
