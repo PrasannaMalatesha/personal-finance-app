@@ -23,7 +23,7 @@ describe('Categories (integration)', () => {
 
   beforeEach(async () => {
     await truncateAll(pool);
-    const { accessCookie: c } = await signupAndGetCookies(app, request);
+    const { accessCookie: c } = await signupAndGetCookies(app);
     accessCookie = c;
   });
 
@@ -60,7 +60,7 @@ describe('Categories (integration)', () => {
     });
 
     it('is user-scoped — other user cannot see', async () => {
-      const { accessCookie: otherCookie } = await signupAndGetCookies(app, request);
+      const { accessCookie: otherCookie } = await signupAndGetCookies(app);
 
       const [mine, theirs] = await Promise.all([
         request(app).get('/api/v1/categories').set('Cookie', accessCookie),
@@ -141,7 +141,7 @@ describe('Categories (integration)', () => {
     });
 
     it('returns 404 for a category owned by another user', async () => {
-      const { accessCookie: otherCookie } = await signupAndGetCookies(app, request);
+      const { accessCookie: otherCookie } = await signupAndGetCookies(app);
       const created = await request(app)
         .post('/api/v1/categories')
         .set('Cookie', otherCookie)

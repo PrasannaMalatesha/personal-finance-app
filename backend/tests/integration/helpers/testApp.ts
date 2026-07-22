@@ -1,5 +1,6 @@
 import type { Pool } from 'pg';
 import type { Express } from 'express';
+import request from 'supertest';
 import { createApp } from '../../../src/app';
 import { buildContainer } from '../../../src/container';
 import logger from '../../../src/logger';
@@ -18,7 +19,6 @@ export function findCookie(setCookie: string[] | undefined, name: string): strin
 
 export async function signupAndGetCookies(
   app: Express,
-  request: (typeof import('supertest'))['default'],
   overrides: Partial<{ email: string; password: string; baseCurrency: string }> = {},
 ): Promise<{ accessCookie: string; refreshCookie: string; userId: string }> {
   const body = {

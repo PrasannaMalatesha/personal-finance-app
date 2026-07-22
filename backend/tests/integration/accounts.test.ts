@@ -22,7 +22,7 @@ describe('Accounts (integration)', () => {
 
   beforeEach(async () => {
     await truncateAll(pool);
-    const { accessCookie: c } = await signupAndGetCookies(app, request);
+    const { accessCookie: c } = await signupAndGetCookies(app);
     accessCookie = c;
   });
 
@@ -208,7 +208,7 @@ describe('Accounts (integration)', () => {
         .send({ name: 'Private', type: 'checking', openingBalance: '99.99' });
       const accountId = created.body.data.id;
 
-      const { accessCookie: other } = await signupAndGetCookies(app, request);
+      const { accessCookie: other } = await signupAndGetCookies(app);
 
       const list = await request(app)
         .get('/api/v1/accounts')
