@@ -2,10 +2,17 @@ import { createApp } from './app';
 import { env } from './config/env';
 import { initSentry } from './sentry';
 import logger from './logger';
+import { pool } from './db/client';
+import { buildContainer } from './container';
 
 initSentry();
 
-const app = createApp();
+const container = buildContainer(pool, logger, {
+  jwtAccessSecret: env.JWT_ACCESS_SECRET,
+  jwtRefreshSecret: env.JWT_REFRESH_SECRET,
+});
+
+const app = createApp(container);
 
 const server = app.listen(env.PORT, () => {
   logger.info({ port: env.PORT, env: env.NODE_ENV }, 'Server listening');
