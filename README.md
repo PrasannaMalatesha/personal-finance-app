@@ -32,15 +32,15 @@ npm run dev              # http://localhost:5173
 
 ## Branches
 
-`main` is the trunk. `dev` and `prod` are downstream deploy branches that get fast-forwarded from `main`.
+`dev` is the working branch. `main` and `prod` are protected — updates only via reviewed PR.
 
-| Branch | Role | Deploys to |
-|---|---|---|
-| `main` | Trunk. Default branch. All commits and PRs land here. | — |
-| `dev` | Downstream of `main`. Fast-forwarded from `main` to update the dev environment. | Dev / staging environment |
-| `prod` | Downstream of `main`. Fast-forwarded from `main` when a release is ready. | Production environment |
+| Branch | Role | Deploys to | Direct push? |
+|---|---|---|---|
+| `dev` | Working branch. All feature commits land here. | Dev / staging environment | ✅ |
+| `main` | Stable. Advances from `dev` via reviewed PR. | — | ❌ PR + approval |
+| `prod` | Production. Advances from `main` via reviewed PR. | Production environment | ❌ PR + approval |
 
-**Flow:** work on `main` → CI green → `git push origin main:dev` to update dev env → when stable, `git push origin main:prod` to release.
+**Flow:** work on `dev` → open PR `dev → main` → owner approves + merges → open PR `main → prod` → owner approves + merges → tag `v0.x.0`.
 
 ## Deploy
 
