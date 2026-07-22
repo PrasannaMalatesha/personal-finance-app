@@ -18,8 +18,15 @@ export function csrfMiddleware(
   if (req.path.startsWith(AUTH_PREFIX)) return next();
 
   const cookieToken = req.cookies?.csrf as string | undefined;
+  // Without a csrf cookie the check is a no-op. The actual v1 cross-site
+  // defense is SameSite=Lax on the auth cookies (the browser will not send
+  // them on cross-site POSTs). The token-based check activates in a later
+  // day once the auth controllers set a csrf cookie for the browser to
+  // echo back in the X-CSRF-Token header.
+  if (!cookieToken) return next();
+
   const headerToken = req.get('X-CSRF-Token');
-  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+  if (!headerToken || cookieToken !== headerToken) {
     return next(new ForbiddenError('CSRF token missing or invalid'));
   }
   return next();

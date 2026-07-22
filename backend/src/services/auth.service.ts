@@ -1,4 +1,4 @@
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 import type { Logger } from 'pino';
 import type { Clock } from '../lib/clock';
 import type { TokenSigner } from '../lib/tokens';
@@ -23,6 +23,8 @@ export interface AuthServiceDeps {
   tokenSigner: TokenSigner;
   passwordHasher: PasswordHasher;
   logger: Logger;
+  /** Hook run inside the signup transaction — used to seed default categories. */
+  onUserCreated?: (userId: string, client: PoolClient) => Promise<void>;
 }
 
 export interface AuthResult {
@@ -44,6 +46,15 @@ function toUserPublic(row: UserRow): UserPublic {
   };
 }
 
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code: unknown }).code === '23505'
+  );
+}
+
 export function createAuthService(deps: AuthServiceDeps) {
   const {
     pool,
@@ -53,6 +64,7 @@ export function createAuthService(deps: AuthServiceDeps) {
     tokenSigner,
     passwordHasher,
     logger,
+    onUserCreated,
   } = deps;
 
   async function issueTokensFor(userId: string): Promise<{
@@ -76,32 +88,44 @@ export function createAuthService(deps: AuthServiceDeps) {
     if (existing) throw new ConflictError('Email already registered');
 
     const passwordHash = await passwordHasher.hash(input.password);
-    let user;
-    try {
-      user = await usersRepo.create({
-        email: input.email,
-        passwordHash,
-        baseCurrency: input.baseCurrency,
-      });
-    } catch (err) {
-      // Concurrent signup with the same email lost the race here.
-      // Postgres unique_violation → ConflictError, not 500.
-      if (isUniqueViolation(err)) {
-        throw new ConflictError('Email already registered');
-      }
-      throw err;
-    }
-    const { accessToken, refreshToken } = await issueTokensFor(user.id);
-    return { user: toUserPublic(user), accessToken, refreshToken };
-  }
 
-  function isUniqueViolation(err: unknown): boolean {
-    return (
-      typeof err === 'object' &&
-      err !== null &&
-      'code' in err &&
-      (err as { code: unknown }).code === '23505'
-    );
+    // Atomic: user insert + seed defaults + refresh token issuance all in one tx.
+    // If any step fails, the whole signup rolls back — no partial user.
+    const { user, refreshToken } = await withTransaction(pool, async (client) => {
+      let created: UserRow;
+      try {
+        created = await usersRepo.create(
+          {
+            email: input.email,
+            passwordHash,
+            baseCurrency: input.baseCurrency,
+          },
+          client,
+        );
+      } catch (err) {
+        if (isUniqueViolation(err)) {
+          throw new ConflictError('Email already registered');
+        }
+        throw err;
+      }
+
+      if (onUserCreated) {
+        await onUserCreated(created.id, client);
+      }
+
+      const refresh = tokenSigner.generateRefreshToken();
+      const tokenHash = tokenSigner.hashRefreshToken(refresh);
+      const expiresAt = new Date(clock.now().getTime() + REFRESH_TTL_SEC * 1000);
+      await refreshTokensRepo.create(
+        { userId: created.id, tokenHash, expiresAt },
+        client,
+      );
+
+      return { user: created, refreshToken: refresh };
+    });
+
+    const { token: accessToken } = tokenSigner.signAccess(user.id);
+    return { user: toUserPublic(user), accessToken, refreshToken };
   }
 
   async function login(input: {

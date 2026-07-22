@@ -9,6 +9,8 @@ import { csrfMiddleware } from './middleware/csrf';
 import { healthzRouter } from './routes/healthz.routes';
 import { flagsRouter } from './routes/flags.routes';
 import { createAuthRouter } from './routes/auth.routes';
+import { createCategoriesRouter } from './routes/categories.routes';
+import { createAccountsRouter } from './routes/accounts.routes';
 import type { Container } from './container';
 
 export function createApp(container: Container): Express {
@@ -32,6 +34,22 @@ export function createApp(container: Container): Express {
   app.use(
     '/api/v1/auth',
     createAuthRouter(container.authController, container.authMiddleware),
+  );
+  app.use(
+    '/api/v1/categories',
+    createCategoriesRouter(
+      container.categoriesController,
+      container.authMiddleware,
+      container.idempotent,
+    ),
+  );
+  app.use(
+    '/api/v1/accounts',
+    createAccountsRouter(
+      container.accountsController,
+      container.authMiddleware,
+      container.idempotent,
+    ),
   );
 
   app.use(errorHandler);
