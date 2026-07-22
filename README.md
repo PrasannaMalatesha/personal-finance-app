@@ -30,6 +30,16 @@ npm install
 npm run dev              # http://localhost:5173
 ```
 
+## Branches
+
+| Branch | Role | Deploys to |
+|---|---|---|
+| `dev` | Day-to-day work. All feature commits and PRs land here first. Default branch. | Dev / staging environment |
+| `main` | Source of truth. `dev` fast-forwards to `main` when a milestone is stable. | — |
+| `prod` | Live production. `main` promotes to `prod` when ready for real users. | Production environment |
+
+**Flow:** work on `dev` → milestone complete + CI green → fast-forward `main` → after stability → fast-forward `prod`.
+
 ## Deploy
 
 - **Frontend:** Vercel — https://personal-finance-app.vercel.app *(coming soon)*
