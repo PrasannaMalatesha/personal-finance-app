@@ -16,8 +16,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "migrate:up": "node-pg-migrate up --migrations-dir src/db/migrations --envPath .env",
-    "migrate:down": "node-pg-migrate down --migrations-dir src/db/migrations --envPath .env",
+    "migrate:up": "dotenv -e .env -- node-pg-migrate up --migrations-dir src/db/migrations",
+    "migrate:down": "dotenv -e .env -- node-pg-migrate down --migrations-dir src/db/migrations",
     "migrate:create": "node-pg-migrate create --migrations-dir src/db/migrations"
   },
   "dependencies": {
@@ -40,6 +40,7 @@
     "@types/pg": "^8.11.10",
     "@types/supertest": "^6.0.2",
     "@vitest/coverage-v8": "^2.1.5",
+    "dotenv-cli": "^7.4.4",
     "eslint": "^9.15.0",
     "node-pg-migrate": "^7.9.0",
     "pino-pretty": "^11.3.0",
