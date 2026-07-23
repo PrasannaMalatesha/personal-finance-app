@@ -20,6 +20,8 @@ import { useAuth, useLogout } from '../../features/auth/useAuth';
 
 const NAV = [
   { to: '/dashboard', label: 'Dashboard' },
+  { to: '/accounts', label: 'Accounts' },
+  { to: '/transactions', label: 'Transactions' },
   { to: '/health', label: 'Health' },
 ];
 
