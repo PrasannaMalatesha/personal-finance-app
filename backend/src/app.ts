@@ -63,7 +63,11 @@ export function createApp(container: Container): Express {
   );
   app.use(
     '/api/v1/imports',
-    createImportsRouter(container.importsController, container.authMiddleware),
+    createImportsRouter(
+      container.importsController,
+      container.authMiddleware,
+      container.idempotent,
+    ),
   );
 
   app.use(errorHandler);

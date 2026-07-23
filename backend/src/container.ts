@@ -7,6 +7,7 @@ import { createCategoriesRepo } from './repositories/categories.repo';
 import { createAccountsRepo } from './repositories/accounts.repo';
 import { createTransactionsRepo } from './repositories/transactions.repo';
 import { createRulesRepo } from './repositories/rules.repo';
+import { createImportBatchesRepo } from './repositories/importBatches.repo';
 import { createAuthService } from './services/auth.service';
 import { createCategoriesService } from './services/categories.service';
 import { createAccountsService } from './services/accounts.service';
@@ -57,6 +58,7 @@ export function buildContainer(
   const accountsRepo = createAccountsRepo(pool);
   const transactionsRepo = createTransactionsRepo(pool);
   const rulesRepo = createRulesRepo(pool);
+  const importBatchesRepo = createImportBatchesRepo(pool);
 
   const categoriesService = createCategoriesService({ categoriesRepo });
   const accountsService = createAccountsService({ accountsRepo });
@@ -71,9 +73,11 @@ export function buildContainer(
   // signed value that can't be mistaken for or used as an access token.
   const previewTokenSigner = createPreviewTokenSigner(config.jwtAccessSecret);
   const csvImportService = createCsvImportService({
+    pool,
     accountsRepo,
     categoriesRepo,
     transactionsRepo,
+    importBatchesRepo,
     categorization: categorizationService,
     previewTokenSigner,
   });

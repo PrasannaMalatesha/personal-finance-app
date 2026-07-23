@@ -49,6 +49,17 @@ export interface DuplicateMatch extends DuplicateKey {
   id: string;
 }
 
+export interface BulkCreateInput {
+  accountId: string;
+  importBatchId: string | null;
+  rows: ReadonlyArray<{
+    date: string;
+    description: string;
+    amount: string;
+    categoryId: string | null;
+  }>;
+}
+
 export interface TransactionsRepo {
   listForUser(filters: ListFilters, executor?: Executor): Promise<TransactionRow[]>;
   findByIdForUser(
@@ -73,6 +84,12 @@ export interface TransactionsRepo {
     keys: readonly DuplicateKey[],
     executor?: Executor,
   ): Promise<DuplicateMatch[]>;
+  bulkCreate(input: BulkCreateInput, executor: Executor): Promise<number>;
+  deleteByBatchIdForUser(
+    batchId: string,
+    userId: string,
+    executor: Executor,
+  ): Promise<number>;
 }
 
 const SELECT_COLS = `
@@ -238,6 +255,34 @@ export function createTransactionsRepo(pool: Pool): TransactionsRepo {
         [id, userId],
       );
       return (rowCount ?? 0) > 0;
+    },
+
+    async bulkCreate({ accountId, importBatchId, rows }, executor) {
+      if (rows.length === 0) return 0;
+      const dates = rows.map((r) => r.date);
+      const descriptions = rows.map((r) => r.description);
+      const amounts = rows.map((r) => r.amount);
+      const categoryIds = rows.map((r) => r.categoryId);
+      const { rowCount } = await executor.query(
+        `INSERT INTO transactions (account_id, date, description, amount, category_id, import_batch_id)
+         SELECT $1, u.date, u.description, u.amount, u.category_id, $2
+         FROM unnest($3::date[], $4::text[], $5::numeric[], $6::uuid[])
+              AS u(date, description, amount, category_id)`,
+        [accountId, importBatchId, dates, descriptions, amounts, categoryIds],
+      );
+      return rowCount ?? 0;
+    },
+
+    async deleteByBatchIdForUser(batchId, userId, executor) {
+      const { rowCount } = await executor.query(
+        `DELETE FROM transactions t
+         USING accounts a
+         WHERE t.import_batch_id = $1
+           AND t.account_id = a.id
+           AND a.user_id = $2`,
+        [batchId, userId],
+      );
+      return rowCount ?? 0;
     },
 
     async findDuplicateKeys(accountId, keys, executor = pool) {

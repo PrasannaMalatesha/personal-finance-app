@@ -2,7 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { parseCsvBuffer, CsvParseError } from '../../src/lib/csv';
-import { detectPreset, HDFC, CHASE } from '../../src/lib/csv/presets';
+import {
+  detectPreset,
+  HDFC,
+  CHASE,
+  ICICI,
+  SBI,
+  BOFA,
+  WELLS_FARGO,
+} from '../../src/lib/csv/presets';
 import { detectGenericColumns } from '../../src/lib/csv/columns';
 import {
   normalizeAmount,
@@ -104,8 +112,75 @@ describe('csv/presets.detectPreset', () => {
       .toBe(CHASE);
   });
 
+  it('detects ICICI by signature', () => {
+    expect(
+      detectPreset([
+        'Transaction Date',
+        'Transaction Remarks',
+        'Withdrawal Amount',
+        'Deposit Amount',
+        'Balance',
+      ]),
+    ).toBe(ICICI);
+  });
+
+  it('detects SBI by signature', () => {
+    expect(
+      detectPreset(['Txn Date', 'Value Date', 'Description', 'Ref No./Cheque No.', 'Debit', 'Credit', 'Balance']),
+    ).toBe(SBI);
+  });
+
+  it('detects Bank of America by signature', () => {
+    expect(detectPreset(['Date', 'Description', 'Amount', 'Running Bal.'])).toBe(BOFA);
+  });
+
+  it('detects Wells Fargo by signature', () => {
+    expect(detectPreset(['Trans Date', 'Post Date', 'Amount', 'Description'])).toBe(WELLS_FARGO);
+  });
+
   it('returns null for unknown headers', () => {
     expect(detectPreset(['Date', 'Description', 'Amount'])).toBeNull();
+  });
+});
+
+describe('csv/parseCsvBuffer — Indian bank fixtures', () => {
+  it('parses ICICI (DMY dates, debit/credit split)', () => {
+    const result = parseCsvBuffer(fixture('icici-sample.csv'));
+    expect(result.detectedColumns.presetName).toBe('ICICI');
+    expect(result.rows[0]).toEqual({
+      index: 0,
+      date: '2026-07-15',
+      description: 'UPI/STARBUCKS/450',
+      amount: '-450.00',
+    });
+    expect(result.rows[1]?.amount).toBe('50000.00');
+  });
+
+  it('parses SBI (DMY dates, debit/credit split)', () => {
+    const result = parseCsvBuffer(fixture('sbi-sample.csv'));
+    expect(result.detectedColumns.presetName).toBe('SBI');
+    expect(result.rows[0]?.amount).toBe('-450.00');
+    expect(result.rows[1]?.amount).toBe('50000.00');
+  });
+});
+
+describe('csv/parseCsvBuffer — US bank fixtures', () => {
+  it('parses Bank of America (MDY dates, signed amount)', () => {
+    const result = parseCsvBuffer(fixture('bofa-sample.csv'));
+    expect(result.detectedColumns.presetName).toBe('BankOfAmerica');
+    expect(result.rows[0]).toEqual({
+      index: 0,
+      date: '2026-07-15',
+      description: 'STARBUCKS #1234 SEATTLE WA',
+      amount: '-6.50',
+    });
+  });
+
+  it('parses Wells Fargo (MDY dates, signed amount)', () => {
+    const result = parseCsvBuffer(fixture('wellsfargo-sample.csv'));
+    expect(result.detectedColumns.presetName).toBe('WellsFargo');
+    expect(result.rows[0]?.date).toBe('2026-07-15');
+    expect(result.rows[1]?.amount).toBe('2500.00');
   });
 });
 
