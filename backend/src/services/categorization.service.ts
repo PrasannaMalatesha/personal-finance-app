@@ -18,20 +18,36 @@ export function normalizeDescription(input: string): string {
   return input.trim().replace(/\s+/g, ' ').toUpperCase();
 }
 
-export function categorizeWithRules(
+export interface RuleMatch {
+  categoryId: string;
+  ruleId: string;
+}
+
+export function matchRules(
   rules: readonly RuleRow[],
   description: string,
-): string | null {
+): RuleMatch | null {
   const normalized = normalizeDescription(description);
   for (const rule of rules) {
     const needle = rule.match_value.toUpperCase();
     if (rule.match_type === 'substring') {
-      if (normalized.includes(needle)) return rule.category_id;
+      if (normalized.includes(needle)) {
+        return { categoryId: rule.category_id, ruleId: rule.id };
+      }
     } else {
-      if (normalized === needle) return rule.category_id;
+      if (normalized === needle) {
+        return { categoryId: rule.category_id, ruleId: rule.id };
+      }
     }
   }
   return null;
+}
+
+export function categorizeWithRules(
+  rules: readonly RuleRow[],
+  description: string,
+): string | null {
+  return matchRules(rules, description)?.categoryId ?? null;
 }
 
 export interface CategorizationServiceDeps {

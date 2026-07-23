@@ -39,6 +39,16 @@ export interface UpdatePatch {
   categoryId?: string | null;
 }
 
+export interface DuplicateKey {
+  date: string; // YYYY-MM-DD
+  amount: string; // signed decimal, matches NUMERIC canonical form
+  description: string;
+}
+
+export interface DuplicateMatch extends DuplicateKey {
+  id: string;
+}
+
 export interface TransactionsRepo {
   listForUser(filters: ListFilters, executor?: Executor): Promise<TransactionRow[]>;
   findByIdForUser(
@@ -58,6 +68,11 @@ export interface TransactionsRepo {
     userId: string,
     executor?: Executor,
   ): Promise<boolean>;
+  findDuplicateKeys(
+    accountId: string,
+    keys: readonly DuplicateKey[],
+    executor?: Executor,
+  ): Promise<DuplicateMatch[]>;
 }
 
 const SELECT_COLS = `
@@ -223,6 +238,40 @@ export function createTransactionsRepo(pool: Pool): TransactionsRepo {
         [id, userId],
       );
       return (rowCount ?? 0) > 0;
+    },
+
+    async findDuplicateKeys(accountId, keys, executor = pool) {
+      if (keys.length === 0) return [];
+      const dates = keys.map((k) => k.date);
+      const amounts = keys.map((k) => k.amount);
+      const descriptions = keys.map((k) => k.description);
+      // DISTINCT ON collapses multiple existing rows matching the same key
+      // to one representative — client just needs the "is duplicate" flag.
+      const { rows } = await executor.query<{
+        id: string;
+        date: string;
+        amount: string;
+        description: string;
+      }>(
+        `WITH keys AS (
+           SELECT * FROM unnest($2::date[], $3::numeric[], $4::text[])
+             AS k(date, amount, description)
+         )
+         SELECT DISTINCT ON (k.date, k.amount, k.description)
+           t.id,
+           to_char(k.date, 'YYYY-MM-DD') AS date,
+           k.amount::text AS amount,
+           k.description
+         FROM keys k
+         JOIN transactions t
+           ON t.account_id = $1
+          AND t.date = k.date
+          AND t.amount = k.amount
+          AND t.description = k.description
+         ORDER BY k.date, k.amount, k.description, t.id`,
+        [accountId, dates, amounts, descriptions],
+      );
+      return rows;
     },
   };
 }
