@@ -5,12 +5,17 @@ import { createRefreshTokensRepo } from './repositories/refreshTokens.repo';
 import { createIdempotencyKeysRepo } from './repositories/idempotencyKeys.repo';
 import { createCategoriesRepo } from './repositories/categories.repo';
 import { createAccountsRepo } from './repositories/accounts.repo';
+import { createTransactionsRepo } from './repositories/transactions.repo';
+import { createRulesRepo } from './repositories/rules.repo';
 import { createAuthService } from './services/auth.service';
 import { createCategoriesService } from './services/categories.service';
 import { createAccountsService } from './services/accounts.service';
+import { createCategorizationService } from './services/categorization.service';
+import { createTransactionsService } from './services/transactions.service';
 import { createAuthController, type AuthController } from './controllers/auth.controller';
 import { createCategoriesController, type CategoriesController } from './controllers/categories.controller';
 import { createAccountsController, type AccountsController } from './controllers/accounts.controller';
+import { createTransactionsController, type TransactionsController } from './controllers/transactions.controller';
 import { createAuthMiddleware } from './middleware/auth';
 import { createIdempotency, type IdempotencyWrapper } from './middleware/idempotency';
 import { createTokenSigner } from './lib/tokens';
@@ -21,6 +26,7 @@ export interface Container {
   authController: AuthController;
   categoriesController: CategoriesController;
   accountsController: AccountsController;
+  transactionsController: TransactionsController;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
   idempotent: IdempotencyWrapper;
 }
@@ -45,9 +51,18 @@ export function buildContainer(
   const idempotencyKeysRepo = createIdempotencyKeysRepo();
   const categoriesRepo = createCategoriesRepo(pool);
   const accountsRepo = createAccountsRepo(pool);
+  const transactionsRepo = createTransactionsRepo(pool);
+  const rulesRepo = createRulesRepo(pool);
 
   const categoriesService = createCategoriesService({ categoriesRepo });
   const accountsService = createAccountsService({ accountsRepo });
+  const categorizationService = createCategorizationService({ rulesRepo });
+  const transactionsService = createTransactionsService({
+    transactionsRepo,
+    accountsRepo,
+    categoriesRepo,
+    categorization: categorizationService,
+  });
 
   const authService = createAuthService({
     pool,
@@ -64,6 +79,7 @@ export function buildContainer(
   const authController = createAuthController(authService);
   const categoriesController = createCategoriesController(categoriesService);
   const accountsController = createAccountsController(accountsService);
+  const transactionsController = createTransactionsController(transactionsService);
   const authMiddleware = createAuthMiddleware(tokenSigner);
   const idempotent = createIdempotency(pool, idempotencyKeysRepo);
 
@@ -71,6 +87,7 @@ export function buildContainer(
     authController,
     categoriesController,
     accountsController,
+    transactionsController,
     authMiddleware,
     idempotent,
   };
