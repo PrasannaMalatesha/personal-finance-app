@@ -12,6 +12,7 @@ import { createAuthRouter } from './routes/auth.routes';
 import { createCategoriesRouter } from './routes/categories.routes';
 import { createAccountsRouter } from './routes/accounts.routes';
 import { createTransactionsRouter } from './routes/transactions.routes';
+import { createImportsRouter } from './routes/imports.routes';
 import type { Container } from './container';
 
 export function createApp(container: Container): Express {
@@ -56,6 +57,14 @@ export function createApp(container: Container): Express {
     '/api/v1/transactions',
     createTransactionsRouter(
       container.transactionsController,
+      container.authMiddleware,
+      container.idempotent,
+    ),
+  );
+  app.use(
+    '/api/v1/imports',
+    createImportsRouter(
+      container.importsController,
       container.authMiddleware,
       container.idempotent,
     ),
