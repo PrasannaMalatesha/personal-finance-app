@@ -4,6 +4,8 @@ import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { HealthPage } from '../features/health/HealthPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { SignupPage } from '../features/auth/SignupPage';
+import { AccountsPage } from '../features/accounts/AccountsPage';
+import { TransactionsPage } from '../features/transactions/TransactionsPage';
 import { ProtectedRoute, PublicOnlyRoute } from './ProtectedRoute';
 
 const router = createBrowserRouter([
@@ -23,6 +25,8 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/dashboard" replace /> },
           { path: 'dashboard', element: <DashboardPage /> },
+          { path: 'accounts', element: <AccountsPage /> },
+          { path: 'transactions', element: <TransactionsPage /> },
           { path: 'health', element: <HealthPage /> },
         ],
       },
