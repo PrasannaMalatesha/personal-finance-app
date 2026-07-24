@@ -6,6 +6,8 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { SignupPage } from '../features/auth/SignupPage';
 import { AccountsPage } from '../features/accounts/AccountsPage';
 import { TransactionsPage } from '../features/transactions/TransactionsPage';
+import { ImportsPage } from '../features/imports/ImportsPage';
+import { NewImportPage } from '../features/imports/NewImportPage';
 import { ProtectedRoute, PublicOnlyRoute } from './ProtectedRoute';
 
 const router = createBrowserRouter([
@@ -27,6 +29,8 @@ const router = createBrowserRouter([
           { path: 'dashboard', element: <DashboardPage /> },
           { path: 'accounts', element: <AccountsPage /> },
           { path: 'transactions', element: <TransactionsPage /> },
+          { path: 'imports', element: <ImportsPage /> },
+          { path: 'imports/new', element: <NewImportPage /> },
           { path: 'health', element: <HealthPage /> },
         ],
       },
