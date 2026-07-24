@@ -9,6 +9,7 @@ import { createTransactionsRepo } from './repositories/transactions.repo';
 import { createRulesRepo } from './repositories/rules.repo';
 import { createImportBatchesRepo } from './repositories/importBatches.repo';
 import { createBudgetsRepo } from './repositories/budgets.repo';
+import { createDashboardRepo } from './repositories/dashboard.repo';
 import { createAuthService } from './services/auth.service';
 import { createCategoriesService } from './services/categories.service';
 import { createAccountsService } from './services/accounts.service';
@@ -16,12 +17,14 @@ import { createCategorizationService } from './services/categorization.service';
 import { createTransactionsService } from './services/transactions.service';
 import { createCsvImportService } from './services/csvImport.service';
 import { createBudgetsService } from './services/budgets.service';
+import { createDashboardService } from './services/dashboard.service';
 import { createAuthController, type AuthController } from './controllers/auth.controller';
 import { createCategoriesController, type CategoriesController } from './controllers/categories.controller';
 import { createAccountsController, type AccountsController } from './controllers/accounts.controller';
 import { createTransactionsController, type TransactionsController } from './controllers/transactions.controller';
 import { createImportsController, type ImportsController } from './controllers/imports.controller';
 import { createBudgetsController, type BudgetsController } from './controllers/budgets.controller';
+import { createDashboardController, type DashboardController } from './controllers/dashboard.controller';
 import { createAuthMiddleware } from './middleware/auth';
 import { createIdempotency, type IdempotencyWrapper } from './middleware/idempotency';
 import { createTokenSigner } from './lib/tokens';
@@ -36,6 +39,7 @@ export interface Container {
   transactionsController: TransactionsController;
   importsController: ImportsController;
   budgetsController: BudgetsController;
+  dashboardController: DashboardController;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
   idempotent: IdempotencyWrapper;
 }
@@ -64,6 +68,7 @@ export function buildContainer(
   const rulesRepo = createRulesRepo(pool);
   const importBatchesRepo = createImportBatchesRepo(pool);
   const budgetsRepo = createBudgetsRepo(pool);
+  const dashboardRepo = createDashboardRepo(pool);
 
   const categoriesService = createCategoriesService({ categoriesRepo });
   const accountsService = createAccountsService({ accountsRepo });
@@ -78,6 +83,7 @@ export function buildContainer(
   // signed value that can't be mistaken for or used as an access token.
   const previewTokenSigner = createPreviewTokenSigner(config.jwtAccessSecret);
   const budgetsService = createBudgetsService({ budgetsRepo, categoriesRepo });
+  const dashboardService = createDashboardService({ dashboardRepo });
   const csvImportService = createCsvImportService({
     pool,
     accountsRepo,
@@ -106,6 +112,7 @@ export function buildContainer(
   const transactionsController = createTransactionsController(transactionsService);
   const importsController = createImportsController(csvImportService);
   const budgetsController = createBudgetsController(budgetsService);
+  const dashboardController = createDashboardController(dashboardService);
   const authMiddleware = createAuthMiddleware(tokenSigner);
   const idempotent = createIdempotency(pool, idempotencyKeysRepo);
 
@@ -116,6 +123,7 @@ export function buildContainer(
     transactionsController,
     importsController,
     budgetsController,
+    dashboardController,
     authMiddleware,
     idempotent,
   };
