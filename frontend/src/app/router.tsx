@@ -8,6 +8,7 @@ import { AccountsPage } from '../features/accounts/AccountsPage';
 import { TransactionsPage } from '../features/transactions/TransactionsPage';
 import { ImportsPage } from '../features/imports/ImportsPage';
 import { NewImportPage } from '../features/imports/NewImportPage';
+import { BudgetsPage } from '../features/budgets/BudgetsPage';
 import { ProtectedRoute, PublicOnlyRoute } from './ProtectedRoute';
 
 const router = createBrowserRouter([
@@ -31,6 +32,7 @@ const router = createBrowserRouter([
           { path: 'transactions', element: <TransactionsPage /> },
           { path: 'imports', element: <ImportsPage /> },
           { path: 'imports/new', element: <NewImportPage /> },
+          { path: 'budgets', element: <BudgetsPage /> },
           { path: 'health', element: <HealthPage /> },
         ],
       },
