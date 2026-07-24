@@ -14,6 +14,7 @@ import { createAccountsRouter } from './routes/accounts.routes';
 import { createTransactionsRouter } from './routes/transactions.routes';
 import { createImportsRouter } from './routes/imports.routes';
 import { createBudgetsRouter } from './routes/budgets.routes';
+import { createDashboardRouter } from './routes/dashboard.routes';
 import type { Container } from './container';
 
 export function createApp(container: Container): Express {
@@ -73,6 +74,10 @@ export function createApp(container: Container): Express {
   app.use(
     '/api/v1/budgets',
     createBudgetsRouter(container.budgetsController, container.authMiddleware),
+  );
+  app.use(
+    '/api/v1/dashboard',
+    createDashboardRouter(container.dashboardController, container.authMiddleware),
   );
 
   app.use(errorHandler);
