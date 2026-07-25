@@ -24,6 +24,7 @@ const NAV = [
   { to: '/transactions', label: 'Transactions' },
   { to: '/imports', label: 'Imports' },
   { to: '/budgets', label: 'Budgets' },
+  { to: '/rules', label: 'Rules' },
   { to: '/health', label: 'Health' },
 ];
 
