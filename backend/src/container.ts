@@ -18,6 +18,7 @@ import { createTransactionsService } from './services/transactions.service';
 import { createCsvImportService } from './services/csvImport.service';
 import { createBudgetsService } from './services/budgets.service';
 import { createDashboardService } from './services/dashboard.service';
+import { createRulesService } from './services/rules.service';
 import { createAuthController, type AuthController } from './controllers/auth.controller';
 import { createCategoriesController, type CategoriesController } from './controllers/categories.controller';
 import { createAccountsController, type AccountsController } from './controllers/accounts.controller';
@@ -25,6 +26,7 @@ import { createTransactionsController, type TransactionsController } from './con
 import { createImportsController, type ImportsController } from './controllers/imports.controller';
 import { createBudgetsController, type BudgetsController } from './controllers/budgets.controller';
 import { createDashboardController, type DashboardController } from './controllers/dashboard.controller';
+import { createRulesController, type RulesController } from './controllers/rules.controller';
 import { createAuthMiddleware } from './middleware/auth';
 import { createIdempotency, type IdempotencyWrapper } from './middleware/idempotency';
 import { createTokenSigner } from './lib/tokens';
@@ -40,6 +42,7 @@ export interface Container {
   importsController: ImportsController;
   budgetsController: BudgetsController;
   dashboardController: DashboardController;
+  rulesController: RulesController;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
   idempotent: IdempotencyWrapper;
 }
@@ -84,6 +87,7 @@ export function buildContainer(
   const previewTokenSigner = createPreviewTokenSigner(config.jwtAccessSecret);
   const budgetsService = createBudgetsService({ budgetsRepo, categoriesRepo });
   const dashboardService = createDashboardService({ dashboardRepo });
+  const rulesService = createRulesService({ rulesRepo, categoriesRepo });
   const csvImportService = createCsvImportService({
     pool,
     accountsRepo,
@@ -102,8 +106,12 @@ export function buildContainer(
     tokenSigner,
     passwordHasher: bcryptHasher,
     logger,
-    // Seed default categories inside the signup transaction — atomic with user create.
-    onUserCreated: categoriesService.seedDefaultsForUser,
+    // Seed defaults inside the signup transaction — categories first (rules
+    // resolve category IDs by name against the just-inserted rows).
+    onUserCreated: async (userId, client) => {
+      await categoriesService.seedDefaultsForUser(userId, client);
+      await rulesService.seedDefaultsForUser(userId, client);
+    },
   });
 
   const authController = createAuthController(authService);
@@ -113,6 +121,7 @@ export function buildContainer(
   const importsController = createImportsController(csvImportService);
   const budgetsController = createBudgetsController(budgetsService);
   const dashboardController = createDashboardController(dashboardService);
+  const rulesController = createRulesController(rulesService);
   const authMiddleware = createAuthMiddleware(tokenSigner);
   const idempotent = createIdempotency(pool, idempotencyKeysRepo);
 
@@ -124,6 +133,7 @@ export function buildContainer(
     importsController,
     budgetsController,
     dashboardController,
+    rulesController,
     authMiddleware,
     idempotent,
   };

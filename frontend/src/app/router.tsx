@@ -9,6 +9,7 @@ import { TransactionsPage } from '../features/transactions/TransactionsPage';
 import { ImportsPage } from '../features/imports/ImportsPage';
 import { NewImportPage } from '../features/imports/NewImportPage';
 import { BudgetsPage } from '../features/budgets/BudgetsPage';
+import { RulesPage } from '../features/rules/RulesPage';
 import { ProtectedRoute, PublicOnlyRoute } from './ProtectedRoute';
 
 const router = createBrowserRouter([
@@ -33,6 +34,7 @@ const router = createBrowserRouter([
           { path: 'imports', element: <ImportsPage /> },
           { path: 'imports/new', element: <NewImportPage /> },
           { path: 'budgets', element: <BudgetsPage /> },
+          { path: 'rules', element: <RulesPage /> },
           { path: 'health', element: <HealthPage /> },
         ],
       },
