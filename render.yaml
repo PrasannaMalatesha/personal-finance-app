@@ -1,0 +1,48 @@
+# Render blueprint (https://render.com/docs/blueprint-spec).
+# Point Render at this repo, pick "New Blueprint Instance", and Render will
+# provision the backend service using this file.
+#
+# You still need to set the secret env vars in the Render dashboard:
+#   DATABASE_URL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, FRONTEND_ORIGIN,
+#   COOKIE_DOMAIN. See README §Deploy for the recipe.
+
+services:
+  - type: web
+    name: personal-finance-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: backend
+    # Migrations run in build so a failed migration fails the deploy —
+    # never end up with a running server pointed at the wrong schema.
+    buildCommand: npm ci && npm run migrate:up:ci && npm run build
+    startCommand: node dist/server.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: PORT
+        value: 3001
+      # Feature flags default off; flip them in the dashboard when a v2
+      # feature is ready to enable in prod.
+      - key: FLAG_PLAID
+        value: 'false'
+      - key: FLAG_RECURRING
+        value: 'false'
+      - key: FLAG_MULTI_CURRENCY
+        value: 'false'
+      # Secrets — set in Render dashboard, not in this file.
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: COOKIE_DOMAIN
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
