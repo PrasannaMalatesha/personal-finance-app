@@ -10,7 +10,7 @@ import { createRulesRepo } from './repositories/rules.repo';
 import { createImportBatchesRepo } from './repositories/importBatches.repo';
 import { createBudgetsRepo } from './repositories/budgets.repo';
 import { createDashboardRepo } from './repositories/dashboard.repo';
-import { createAuthService } from './services/auth.service';
+import { createAuthService, type AuthService } from './services/auth.service';
 import { createCategoriesService } from './services/categories.service';
 import { createAccountsService } from './services/accounts.service';
 import { createCategorizationService } from './services/categorization.service';
@@ -35,6 +35,7 @@ import { bcryptHasher } from './lib/password';
 import { systemClock } from './lib/clock';
 
 export interface Container {
+  authService: AuthService;
   authController: AuthController;
   categoriesController: CategoriesController;
   accountsController: AccountsController;
@@ -126,6 +127,7 @@ export function buildContainer(
   const idempotent = createIdempotency(pool, idempotencyKeysRepo);
 
   return {
+    authService,
     authController,
     categoriesController,
     accountsController,
