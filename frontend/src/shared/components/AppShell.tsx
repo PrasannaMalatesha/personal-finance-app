@@ -18,6 +18,9 @@ import { Link as RouterLink, NavLink, Outlet, useNavigate } from 'react-router-d
 import { brand } from '../../app/theme';
 import { useAuth, useLogout } from '../../features/auth/useAuth';
 
+// /health is intentionally omitted — it's a debug page reachable by URL
+// but kept out of the primary nav to prevent overflow on standard laptop
+// widths. Everything a user needs day-to-day is in the visible list.
 const NAV = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/accounts', label: 'Accounts' },
@@ -25,7 +28,6 @@ const NAV = [
   { to: '/imports', label: 'Imports' },
   { to: '/budgets', label: 'Budgets' },
   { to: '/rules', label: 'Rules' },
-  { to: '/health', label: 'Health' },
 ];
 
 function BrandMark() {

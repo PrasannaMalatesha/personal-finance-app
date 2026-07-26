@@ -1,6 +1,7 @@
+import { lazy, Suspense } from 'react';
+import { Box, CircularProgress } from '@mui/material';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { AppShell } from '../shared/components/AppShell';
-import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { HealthPage } from '../features/health/HealthPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { SignupPage } from '../features/auth/SignupPage';
@@ -11,6 +12,22 @@ import { NewImportPage } from '../features/imports/NewImportPage';
 import { BudgetsPage } from '../features/budgets/BudgetsPage';
 import { RulesPage } from '../features/rules/RulesPage';
 import { ProtectedRoute, PublicOnlyRoute } from './ProtectedRoute';
+
+// Recharts is heavy (~400KB) and only used on the dashboard. Split it into
+// its own chunk so login/signup/other pages don't pay for it up front.
+const DashboardPage = lazy(() =>
+  import('../features/dashboard/DashboardPage').then((m) => ({
+    default: m.DashboardPage,
+  })),
+);
+
+function RouteFallback() {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+      <CircularProgress size={28} />
+    </Box>
+  );
+}
 
 const router = createBrowserRouter([
   {
@@ -28,7 +45,14 @@ const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           { index: true, element: <Navigate to="/dashboard" replace /> },
-          { path: 'dashboard', element: <DashboardPage /> },
+          {
+            path: 'dashboard',
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <DashboardPage />
+              </Suspense>
+            ),
+          },
           { path: 'accounts', element: <AccountsPage /> },
           { path: 'transactions', element: <TransactionsPage /> },
           { path: 'imports', element: <ImportsPage /> },
