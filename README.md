@@ -175,3 +175,4 @@ Full rationale in [TRD.md §2.1](TRD.md).
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
