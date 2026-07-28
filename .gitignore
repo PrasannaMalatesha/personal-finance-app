@@ -40,3 +40,4 @@ Thumbs.db
 
 # Local docker volume bind mounts
 data/
+
