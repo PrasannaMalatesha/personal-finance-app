@@ -760,3 +760,4 @@ VITE_FLAG_*
 - [ ] Consistency & idempotency invariants in §7 — the finance-critical section — final review pass
 - [ ] Security mitigations in §8 — final review pass
 - [ ] Test coverage targets in §10 (including §7.5 concurrency tests) — final review pass
+
