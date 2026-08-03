@@ -41,7 +41,9 @@ jobs:
       COOKIE_DOMAIN: ''
       FRONTEND_ORIGIN: http://localhost:5173
       FLAG_PLAID: 'false'
-      FLAG_RECURRING: 'false'
+      # v2 recurring detection tests hit /api/v1/recurring which is
+      # conditionally mounted — flag must be on for the tests to reach it.
+      FLAG_RECURRING: 'true'
       FLAG_MULTI_CURRENCY: 'false'
     steps:
       - uses: actions/checkout@v4
