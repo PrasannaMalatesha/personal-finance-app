@@ -10,6 +10,7 @@ import { createRulesRepo } from './repositories/rules.repo';
 import { createImportBatchesRepo } from './repositories/importBatches.repo';
 import { createBudgetsRepo } from './repositories/budgets.repo';
 import { createDashboardRepo } from './repositories/dashboard.repo';
+import { createRecurringRepo } from './repositories/recurring.repo';
 import { createAuthService, type AuthService } from './services/auth.service';
 import { createCategoriesService } from './services/categories.service';
 import { createAccountsService } from './services/accounts.service';
@@ -19,6 +20,7 @@ import { createCsvImportService } from './services/csvImport.service';
 import { createBudgetsService } from './services/budgets.service';
 import { createDashboardService } from './services/dashboard.service';
 import { createRulesService } from './services/rules.service';
+import { createRecurringService } from './services/recurring.service';
 import { createAuthController, type AuthController } from './controllers/auth.controller';
 import { createCategoriesController, type CategoriesController } from './controllers/categories.controller';
 import { createAccountsController, type AccountsController } from './controllers/accounts.controller';
@@ -27,6 +29,7 @@ import { createImportsController, type ImportsController } from './controllers/i
 import { createBudgetsController, type BudgetsController } from './controllers/budgets.controller';
 import { createDashboardController, type DashboardController } from './controllers/dashboard.controller';
 import { createRulesController, type RulesController } from './controllers/rules.controller';
+import { createRecurringController, type RecurringController } from './controllers/recurring.controller';
 import { createAuthMiddleware } from './middleware/auth';
 import { createIdempotency, type IdempotencyWrapper } from './middleware/idempotency';
 import { createTokenSigner } from './lib/tokens';
@@ -44,6 +47,7 @@ export interface Container {
   budgetsController: BudgetsController;
   dashboardController: DashboardController;
   rulesController: RulesController;
+  recurringController: RecurringController;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
   idempotent: IdempotencyWrapper;
 }
@@ -73,6 +77,7 @@ export function buildContainer(
   const importBatchesRepo = createImportBatchesRepo(pool);
   const budgetsRepo = createBudgetsRepo(pool);
   const dashboardRepo = createDashboardRepo(pool);
+  const recurringRepo = createRecurringRepo(pool);
 
   const categoriesService = createCategoriesService({ categoriesRepo });
   const accountsService = createAccountsService({ accountsRepo });
@@ -89,6 +94,7 @@ export function buildContainer(
   const budgetsService = createBudgetsService({ budgetsRepo, categoriesRepo });
   const dashboardService = createDashboardService({ dashboardRepo });
   const rulesService = createRulesService({ rulesRepo, categoriesRepo });
+  const recurringService = createRecurringService({ pool, recurringRepo });
   const csvImportService = createCsvImportService({
     pool,
     accountsRepo,
@@ -123,6 +129,7 @@ export function buildContainer(
   const budgetsController = createBudgetsController(budgetsService);
   const dashboardController = createDashboardController(dashboardService);
   const rulesController = createRulesController(rulesService);
+  const recurringController = createRecurringController(recurringService);
   const authMiddleware = createAuthMiddleware(tokenSigner);
   const idempotent = createIdempotency(pool, idempotencyKeysRepo);
 
@@ -136,6 +143,7 @@ export function buildContainer(
     budgetsController,
     dashboardController,
     rulesController,
+    recurringController,
     authMiddleware,
     idempotent,
   };

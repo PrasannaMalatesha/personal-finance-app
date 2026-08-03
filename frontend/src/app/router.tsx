@@ -11,6 +11,8 @@ import { ImportsPage } from '../features/imports/ImportsPage';
 import { NewImportPage } from '../features/imports/NewImportPage';
 import { BudgetsPage } from '../features/budgets/BudgetsPage';
 import { RulesPage } from '../features/rules/RulesPage';
+import { SubscriptionsPage } from '../features/recurring/SubscriptionsPage';
+import { flags } from '../flags';
 import { ProtectedRoute, PublicOnlyRoute } from './ProtectedRoute';
 
 // Recharts is heavy (~400KB) and only used on the dashboard. Split it into
@@ -59,6 +61,11 @@ const router = createBrowserRouter([
           { path: 'imports/new', element: <NewImportPage /> },
           { path: 'budgets', element: <BudgetsPage /> },
           { path: 'rules', element: <RulesPage /> },
+          // v2 feature — route only registered when the flag is on so it
+          // 404s cleanly when disabled. Matches the backend router mount.
+          ...(flags.recurringDetection
+            ? [{ path: 'subscriptions', element: <SubscriptionsPage /> }]
+            : []),
           { path: 'health', element: <HealthPage /> },
         ],
       },
