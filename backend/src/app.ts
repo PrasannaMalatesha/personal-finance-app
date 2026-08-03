@@ -16,6 +16,8 @@ import { createImportsRouter } from './routes/imports.routes';
 import { createBudgetsRouter } from './routes/budgets.routes';
 import { createDashboardRouter } from './routes/dashboard.routes';
 import { createRulesRouter } from './routes/rules.routes';
+import { createRecurringRouter } from './routes/recurring.routes';
+import { flags } from './flags';
 import type { Container } from './container';
 
 export function createApp(container: Container): Express {
@@ -88,6 +90,15 @@ export function createApp(container: Container): Express {
       container.idempotent,
     ),
   );
+  // v2 features are conditionally mounted so they 404 cleanly when the flag
+  // is off — no runtime cost, no exposed surface. Flip FLAG_RECURRING to
+  // enable in a given environment.
+  if (flags.recurringDetection) {
+    app.use(
+      '/api/v1/recurring',
+      createRecurringRouter(container.recurringController, container.authMiddleware),
+    );
+  }
 
   app.use(errorHandler);
 

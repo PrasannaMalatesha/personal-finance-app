@@ -8,6 +8,9 @@ const defaults: Record<string, string> = {
   JWT_ACCESS_SECRET: 'test-access-secret-must-be-at-least-32-chars-long',
   JWT_REFRESH_SECRET: 'test-refresh-secret-must-be-at-least-32-chars-diff',
   FRONTEND_ORIGIN: 'http://localhost:5173',
+  // v2 features on for tests so their endpoints are reachable. Individual
+  // test files can override via env before importing.
+  FLAG_RECURRING: 'true',
 };
 
 for (const [key, value] of Object.entries(defaults)) {

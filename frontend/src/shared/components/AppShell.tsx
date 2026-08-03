@@ -16,18 +16,23 @@ import {
 import LogoutIcon from '@mui/icons-material/LogoutOutlined';
 import { Link as RouterLink, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { brand } from '../../app/theme';
+import { flags } from '../../flags';
 import { useAuth, useLogout } from '../../features/auth/useAuth';
 
 // /health is intentionally omitted — it's a debug page reachable by URL
 // but kept out of the primary nav to prevent overflow on standard laptop
 // widths. Everything a user needs day-to-day is in the visible list.
-const NAV = [
+// v2 feature-flagged items append when the corresponding VITE_FLAG_* is on.
+const NAV: Array<{ to: string; label: string }> = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/accounts', label: 'Accounts' },
   { to: '/transactions', label: 'Transactions' },
   { to: '/imports', label: 'Imports' },
   { to: '/budgets', label: 'Budgets' },
   { to: '/rules', label: 'Rules' },
+  ...(flags.recurringDetection
+    ? [{ to: '/subscriptions', label: 'Subscriptions' }]
+    : []),
 ];
 
 function BrandMark() {

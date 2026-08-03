@@ -4,6 +4,7 @@ const TABLES = [
   'idempotency_keys',
   'budgets',
   'transactions',
+  'recurring_groups',
   'import_batches',
   'rules',
   'categories',
