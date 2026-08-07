@@ -1,6 +1,7 @@
 import { apiFetch } from '../../shared/api/client';
 import type {
   DashboardCategorySlice,
+  DashboardNetWorthPoint,
   DashboardSummary,
   DashboardTrendPoint,
 } from './schemas';
@@ -26,6 +27,13 @@ export async function getByCategory(month: string): Promise<DashboardCategorySli
 export async function getTrend(months: number): Promise<DashboardTrendPoint[]> {
   const res = await apiFetch<DataWrap<DashboardTrendPoint[]>>(
     `/api/v1/dashboard/trend?months=${months}`,
+  );
+  return res.data;
+}
+
+export async function getNetWorth(months: number): Promise<DashboardNetWorthPoint[]> {
+  const res = await apiFetch<DataWrap<DashboardNetWorthPoint[]>>(
+    `/api/v1/dashboard/net-worth?months=${months}`,
   );
   return res.data;
 }

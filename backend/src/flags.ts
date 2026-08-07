@@ -4,6 +4,7 @@ export const flags = {
   plaid: env.FLAG_PLAID,
   recurringDetection: env.FLAG_RECURRING,
   multiCurrency: env.FLAG_MULTI_CURRENCY,
+  netWorth: env.FLAG_NET_WORTH,
 } as const;
 
 export type Flag = keyof typeof flags;

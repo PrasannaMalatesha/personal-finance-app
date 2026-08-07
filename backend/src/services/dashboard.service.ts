@@ -1,10 +1,19 @@
 import type { DashboardRepo } from '../repositories/dashboard.repo';
 import type {
   DashboardCategorySlice,
+  DashboardNetWorthPoint,
   DashboardSummary,
   DashboardTrendPoint,
 } from '../schemas/dashboard';
 import { monthToDate } from '../schemas/dashboard';
+
+/** Current UTC month as YYYY-MM-01. Kept local so trend + netWorth agree. */
+function currentMonthAnchor(): string {
+  const d = new Date();
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  return `${y}-${m}-01`;
+}
 
 export interface DashboardServiceDeps {
   dashboardRepo: DashboardRepo;
@@ -46,14 +55,7 @@ export function createDashboardService(deps: DashboardServiceDeps) {
   ): Promise<DashboardTrendPoint[]> {
     // Default anchor is the current calendar month in the server's timezone.
     // Callers can pin it explicitly to keep tests deterministic.
-    const anchor = endMonth
-      ? monthToDate(endMonth)
-      : (() => {
-          const d = new Date();
-          const y = d.getUTCFullYear();
-          const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-          return `${y}-${m}-01`;
-        })();
+    const anchor = endMonth ? monthToDate(endMonth) : currentMonthAnchor();
     const rows = await dashboardRepo.trend(userId, anchor, months);
     return rows.map((r) => ({
       month: r.month,
@@ -62,7 +64,17 @@ export function createDashboardService(deps: DashboardServiceDeps) {
     }));
   }
 
-  return { summary, byCategory, trend };
+  async function netWorth(
+    userId: string,
+    months: number,
+    endMonth?: string,
+  ): Promise<DashboardNetWorthPoint[]> {
+    const anchor = endMonth ? monthToDate(endMonth) : currentMonthAnchor();
+    const rows = await dashboardRepo.netWorth(userId, anchor, months);
+    return rows.map((r) => ({ month: r.month, netWorth: r.net_worth }));
+  }
+
+  return { summary, byCategory, trend, netWorth };
 }
 
 export type DashboardService = ReturnType<typeof createDashboardService>;

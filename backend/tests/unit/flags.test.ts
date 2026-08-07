@@ -18,6 +18,7 @@ describe('GET /api/v1/flags', () => {
       plaid: false,
       recurringDetection: expect.any(Boolean),
       multiCurrency: false,
+      netWorth: expect.any(Boolean),
     });
   });
 });

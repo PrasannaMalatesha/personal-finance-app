@@ -33,6 +33,8 @@ services:
         value: 'false'
       - key: FLAG_MULTI_CURRENCY
         value: 'false'
+      - key: FLAG_NET_WORTH
+        value: 'false'
       # Secrets — set in Render dashboard, not in this file.
       - key: DATABASE_URL
         sync: false

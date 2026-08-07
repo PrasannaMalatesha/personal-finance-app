@@ -21,6 +21,13 @@ export const TrendQuery = z.object({
 });
 export type TrendQuery = z.infer<typeof TrendQuery>;
 
+// Same shape as TrendQuery — kept separate so they can diverge later.
+export const NetWorthQuery = z.object({
+  months: z.coerce.number().int().min(2).max(24).default(6),
+  endMonth: MonthString.optional(),
+});
+export type NetWorthQuery = z.infer<typeof NetWorthQuery>;
+
 export interface DashboardSummary {
   month: string;
   income: string;
@@ -42,6 +49,11 @@ export interface DashboardTrendPoint {
   month: string;
   income: string;
   expenses: string;
+}
+
+export interface DashboardNetWorthPoint {
+  month: string;
+  netWorth: string;
 }
 
 /** YYYY-MM → first-of-month DATE string. */

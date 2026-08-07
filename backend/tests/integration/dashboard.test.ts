@@ -361,4 +361,80 @@ describe('Dashboard (integration)', () => {
       expect(data.every((p) => p.expenses === '0.00')).toBe(true);
     });
   });
+
+  describe('GET /api/v1/dashboard/net-worth', () => {
+    it('returns 401 without auth', async () => {
+      const res = await request(app).get('/api/v1/dashboard/net-worth');
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 400 on months out of range', async () => {
+      const res = await request(app)
+        .get('/api/v1/dashboard/net-worth?months=1')
+        .set('Cookie', accessCookie);
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 6 zero-filled points when no accounts or transactions exist', async () => {
+      // Fresh user with no data. Existing beforeEach created ONE account
+      // with opening_balance=0, so all 6 points should be 0.00.
+      const res = await request(app)
+        .get('/api/v1/dashboard/net-worth?months=6&endMonth=2026-07')
+        .set('Cookie', accessCookie);
+      expect(res.status).toBe(200);
+      const data = res.body.data as Array<{ month: string; netWorth: string }>;
+      expect(data.map((p) => p.month)).toEqual([
+        '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07',
+      ]);
+      expect(data.every((p) => p.netWorth === '0.00')).toBe(true);
+    });
+
+    it('accumulates opening balances + transaction flow through each month', async () => {
+      // Give the account an opening balance by patching it.
+      await request(app)
+        .patch(`/api/v1/accounts/${accountId}`)
+        .set('Cookie', accessCookie)
+        .send({ openingBalance: '1000.00' });
+
+      // May: +200 income → month-end net = 1200
+      await createTx(app, accessCookie, {
+        accountId, date: '2026-05-15', amount: '200.00', categoryId: salaryId,
+      });
+      // June: -300 expense → month-end net = 900
+      await createTx(app, accessCookie, {
+        accountId, date: '2026-06-20', amount: '-300.00', categoryId: diningId,
+      });
+      // July: +500 income → month-end net = 1400
+      await createTx(app, accessCookie, {
+        accountId, date: '2026-07-01', amount: '500.00', categoryId: salaryId,
+      });
+
+      const res = await request(app)
+        .get('/api/v1/dashboard/net-worth?months=6&endMonth=2026-07')
+        .set('Cookie', accessCookie);
+      expect(res.status).toBe(200);
+      const data = res.body.data as Array<{ month: string; netWorth: string }>;
+      const byMonth = new Map(data.map((p) => [p.month, p.netWorth]));
+      expect(byMonth.get('2026-02')).toBe('1000.00');
+      expect(byMonth.get('2026-03')).toBe('1000.00');
+      expect(byMonth.get('2026-04')).toBe('1000.00');
+      expect(byMonth.get('2026-05')).toBe('1200.00');
+      expect(byMonth.get('2026-06')).toBe('900.00');
+      expect(byMonth.get('2026-07')).toBe('1400.00');
+    });
+
+    it('is user-scoped — another user\'s data is not visible', async () => {
+      await request(app)
+        .patch(`/api/v1/accounts/${accountId}`)
+        .set('Cookie', accessCookie)
+        .send({ openingBalance: '5000.00' });
+      const other = await signupAndGetCookies(app);
+      const res = await request(app)
+        .get('/api/v1/dashboard/net-worth?months=6&endMonth=2026-07')
+        .set('Cookie', other.accessCookie);
+      expect(res.status).toBe(200);
+      const data = res.body.data as Array<{ netWorth: string }>;
+      expect(data.every((p) => p.netWorth === '0.00')).toBe(true);
+    });
+  });
 });

@@ -20,3 +20,8 @@ export interface DashboardTrendPoint {
   income: string;
   expenses: string;
 }
+
+export interface DashboardNetWorthPoint {
+  month: string;
+  netWorth: string;
+}
