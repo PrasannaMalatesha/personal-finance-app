@@ -48,6 +48,10 @@ jobs:
       # v2 net-worth chart tests hit /api/v1/dashboard/net-worth, also
       # conditionally mounted — same reason as FLAG_RECURRING above.
       FLAG_NET_WORTH: 'true'
+      # v2 hierarchy tests exercise dashboard rollup logic gated behind
+      # this flag; keep it on so both branches (rollup + flat) are checked
+      # by the test suite.
+      FLAG_HIERARCHICAL_CATEGORIES: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

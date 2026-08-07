@@ -22,6 +22,7 @@ const CAT: CategoryPublic = {
   name: 'Dining',
   color: '#e57373',
   isSystemDefault: true,
+  parentCategoryId: null,
   createdAt: '2026-01-01T00:00:00Z',
 };
 

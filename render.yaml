@@ -35,6 +35,8 @@ services:
         value: 'false'
       - key: FLAG_NET_WORTH
         value: 'false'
+      - key: FLAG_HIERARCHICAL_CATEGORIES
+        value: 'false'
       # Secrets — set in Render dashboard, not in this file.
       - key: DATABASE_URL
         sync: false

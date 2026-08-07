@@ -33,6 +33,9 @@ const NAV: Array<{ to: string; label: string }> = [
   ...(flags.recurringDetection
     ? [{ to: '/subscriptions', label: 'Subscriptions' }]
     : []),
+  ...(flags.hierarchicalCategories
+    ? [{ to: '/categories', label: 'Categories' }]
+    : []),
 ];
 
 function BrandMark() {

@@ -12,6 +12,7 @@ const defaults: Record<string, string> = {
   // test files can override via env before importing.
   FLAG_RECURRING: 'true',
   FLAG_NET_WORTH: 'true',
+  FLAG_HIERARCHICAL_CATEGORIES: 'true',
 };
 
 for (const [key, value] of Object.entries(defaults)) {
