@@ -23,6 +23,11 @@ export interface TrendRow {
   expenses: string;
 }
 
+export interface NetWorthRow {
+  month: string; // 'YYYY-MM'
+  net_worth: string;
+}
+
 export interface DashboardRepo {
   summaryForMonth(
     userId: string,
@@ -40,6 +45,12 @@ export interface DashboardRepo {
     months: number,
     executor?: Executor,
   ): Promise<TrendRow[]>;
+  netWorth(
+    userId: string,
+    endMonth: string,
+    months: number,
+    executor?: Executor,
+  ): Promise<NetWorthRow[]>;
 }
 
 export function createDashboardRepo(pool: Pool): DashboardRepo {
@@ -149,6 +160,46 @@ export function createDashboardRepo(pool: Pool): DashboardRepo {
            ON a.id = t.account_id AND a.user_id = $3
          WHERE t.id IS NULL OR a.user_id = $3
          GROUP BY m.month
+         ORDER BY m.month ASC`,
+        [endMonth, months, userId],
+      );
+      return rows;
+    },
+
+    /**
+     * Net worth = sum(account.opening_balance) + cumulative transaction flow
+     * up to and including each month. Computed from source data every call
+     * (I3: no derived money is cached). One month-end value per generated
+     * month, no gaps.
+     *
+     * For a user with N accounts and T transactions, this runs one subquery
+     * per generated month — O(N + T) per row, O(months × T) total. Fine at
+     * the sizes v1 targets (~5k tx demo dataset in <500ms).
+     */
+    async netWorth(userId, endMonth, months, executor = pool) {
+      const { rows } = await executor.query<NetWorthRow>(
+        `WITH months AS (
+           SELECT generate_series(
+             ($1::date - ($2::int - 1) * INTERVAL '1 month')::date,
+             $1::date,
+             INTERVAL '1 month'
+           )::date AS month
+         ),
+         opening_total AS (
+           SELECT COALESCE(SUM(opening_balance), 0) AS total
+           FROM accounts
+           WHERE user_id = $3
+         )
+         SELECT
+           to_char(m.month, 'YYYY-MM') AS month,
+           (opening_total.total + COALESCE(
+             (SELECT SUM(t.amount)
+              FROM transactions t
+              JOIN accounts a ON a.id = t.account_id
+              WHERE a.user_id = $3
+                AND t.date < (m.month + INTERVAL '1 month')::date), 0
+           ))::numeric(14,2)::text AS net_worth
+         FROM months m CROSS JOIN opening_total
          ORDER BY m.month ASC`,
         [endMonth, months, userId],
       );

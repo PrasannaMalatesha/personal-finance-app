@@ -21,6 +21,7 @@ const envSchema = z
     FLAG_PLAID: booleanFromString,
     FLAG_RECURRING: booleanFromString,
     FLAG_MULTI_CURRENCY: booleanFromString,
+    FLAG_NET_WORTH: booleanFromString,
   })
   .refine((data) => data.JWT_ACCESS_SECRET !== data.JWT_REFRESH_SECRET, {
     message: 'JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must differ',

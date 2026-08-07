@@ -16,7 +16,9 @@ import { currentMonth } from '../budgets/schemas';
 import { SummaryCard } from './SummaryCard';
 import { ByCategoryPie } from './ByCategoryPie';
 import { TrendLine } from './TrendLine';
-import { useByCategory, useSummary, useTrend } from './useDashboard';
+import { NetWorthChart } from './NetWorthChart';
+import { flags } from '../../flags';
+import { useByCategory, useNetWorth, useSummary, useTrend } from './useDashboard';
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -28,9 +30,11 @@ export function DashboardPage() {
   const summary = useSummary(month);
   const byCategory = useByCategory(month);
   const trend = useTrend(6);
+  // Skip the request when the flag is off; the endpoint isn't mounted server-side.
+  const netWorth = useNetWorth(6, flags.netWorth);
 
   const zeroAccounts = accounts.data && accounts.data.length === 0;
-  const anyError = summary.error ?? byCategory.error ?? trend.error;
+  const anyError = summary.error ?? byCategory.error ?? trend.error ?? netWorth.error;
   const anyPending = summary.isPending || byCategory.isPending || trend.isPending;
 
   return (
@@ -79,6 +83,9 @@ export function DashboardPage() {
             <ByCategoryPie data={byCategory.data} currency={currency} />
             <TrendLine data={trend.data} currency={currency} />
           </Box>
+          {flags.netWorth && netWorth.data && (
+            <NetWorthChart data={netWorth.data} currency={currency} />
+          )}
         </Stack>
       )}
     </Stack>

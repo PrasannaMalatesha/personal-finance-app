@@ -11,6 +11,7 @@ const defaults: Record<string, string> = {
   // v2 features on for tests so their endpoints are reachable. Individual
   // test files can override via env before importing.
   FLAG_RECURRING: 'true',
+  FLAG_NET_WORTH: 'true',
 };
 
 for (const [key, value] of Object.entries(defaults)) {
