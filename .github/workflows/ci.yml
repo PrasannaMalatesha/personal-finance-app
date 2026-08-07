@@ -45,6 +45,9 @@ jobs:
       # conditionally mounted — flag must be on for the tests to reach it.
       FLAG_RECURRING: 'true'
       FLAG_MULTI_CURRENCY: 'false'
+      # v2 net-worth chart tests hit /api/v1/dashboard/net-worth, also
+      # conditionally mounted — same reason as FLAG_RECURRING above.
+      FLAG_NET_WORTH: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
