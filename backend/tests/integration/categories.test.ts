@@ -179,4 +179,136 @@ describe('Categories (integration)', () => {
       expect(stillExists).toBe(false);
     });
   });
+
+  describe('parent_category_id (hierarchy)', () => {
+    // The 18 seeded categories are all top-level by default. Depth-2 rule:
+    // a subcategory can point at a top-level parent, but a top-level can't
+    // be re-parented under another top-level (would make its children
+    // grandchildren of the new root).
+    async function findId(name: string): Promise<string> {
+      const list = await request(app)
+        .get('/api/v1/categories')
+        .set('Cookie', accessCookie);
+      const found = (list.body.data as Array<{ id: string; name: string }>).find(
+        (c) => c.name === name,
+      );
+      if (!found) throw new Error(`Category '${name}' not found`);
+      return found.id;
+    }
+
+    it('creates a subcategory with parentCategoryId set', async () => {
+      const diningId = await findId('Dining');
+      const res = await request(app)
+        .post('/api/v1/categories')
+        .set('Cookie', accessCookie)
+        .set('Idempotency-Key', randomUUID())
+        .send({ name: 'Coffee', color: '#795548', parentCategoryId: diningId });
+      expect(res.status).toBe(201);
+      expect(res.body.data).toMatchObject({
+        name: 'Coffee',
+        parentCategoryId: diningId,
+      });
+    });
+
+    it('rejects a parent owned by another user with 404', async () => {
+      const other = await signupAndGetCookies(app);
+      const otherDining = await (async () => {
+        const list = await request(app)
+          .get('/api/v1/categories')
+          .set('Cookie', other.accessCookie);
+        return (list.body.data as Array<{ id: string; name: string }>).find(
+          (c) => c.name === 'Dining',
+        )!.id;
+      })();
+      const res = await request(app)
+        .post('/api/v1/categories')
+        .set('Cookie', accessCookie)
+        .set('Idempotency-Key', randomUUID())
+        .send({ name: 'X', color: '#000000', parentCategoryId: otherDining });
+      expect(res.status).toBe(404);
+    });
+
+    it('rejects a grandchild (parent already has a parent) with 400', async () => {
+      const diningId = await findId('Dining');
+      // Create Coffee as a subcategory of Dining.
+      const coffee = await request(app)
+        .post('/api/v1/categories')
+        .set('Cookie', accessCookie)
+        .set('Idempotency-Key', randomUUID())
+        .send({ name: 'Coffee', color: '#795548', parentCategoryId: diningId });
+      expect(coffee.status).toBe(201);
+      // Now try to nest Espresso under Coffee — should fail (depth 2).
+      const res = await request(app)
+        .post('/api/v1/categories')
+        .set('Cookie', accessCookie)
+        .set('Idempotency-Key', randomUUID())
+        .send({
+          name: 'Espresso',
+          color: '#3E2723',
+          parentCategoryId: coffee.body.data.id,
+        });
+      expect(res.status).toBe(400);
+    });
+
+    it('rejects re-parenting a category that has children (would create 3-deep chain)', async () => {
+      const diningId = await findId('Dining');
+      const groceriesId = await findId('Groceries');
+      // Make Snacks a subcategory of Dining.
+      await request(app)
+        .post('/api/v1/categories')
+        .set('Cookie', accessCookie)
+        .set('Idempotency-Key', randomUUID())
+        .send({ name: 'Snacks', color: '#8d6e63', parentCategoryId: diningId });
+      // Now try to re-parent Dining under Groceries — Dining has a child.
+      const res = await request(app)
+        .patch(`/api/v1/categories/${diningId}`)
+        .set('Cookie', accessCookie)
+        .send({ parentCategoryId: groceriesId });
+      expect(res.status).toBe(400);
+    });
+
+    it('rejects self-reference on PATCH with 400', async () => {
+      const diningId = await findId('Dining');
+      const res = await request(app)
+        .patch(`/api/v1/categories/${diningId}`)
+        .set('Cookie', accessCookie)
+        .send({ parentCategoryId: diningId });
+      expect(res.status).toBe(400);
+    });
+
+    it('PATCH parentCategoryId=null clears the parent', async () => {
+      const diningId = await findId('Dining');
+      const coffee = await request(app)
+        .post('/api/v1/categories')
+        .set('Cookie', accessCookie)
+        .set('Idempotency-Key', randomUUID())
+        .send({ name: 'Coffee', color: '#795548', parentCategoryId: diningId });
+      const res = await request(app)
+        .patch(`/api/v1/categories/${coffee.body.data.id}`)
+        .set('Cookie', accessCookie)
+        .send({ parentCategoryId: null });
+      expect(res.status).toBe(200);
+      expect(res.body.data.parentCategoryId).toBeNull();
+    });
+
+    it('deleting a parent sets children.parent_category_id to NULL', async () => {
+      const diningId = await findId('Dining');
+      const coffee = await request(app)
+        .post('/api/v1/categories')
+        .set('Cookie', accessCookie)
+        .set('Idempotency-Key', randomUUID())
+        .send({ name: 'Coffee', color: '#795548', parentCategoryId: diningId });
+      await request(app)
+        .delete(`/api/v1/categories/${diningId}`)
+        .set('Cookie', accessCookie);
+      const list = await request(app)
+        .get('/api/v1/categories')
+        .set('Cookie', accessCookie);
+      const coffeeAfter = (list.body.data as Array<{ id: string; parentCategoryId: string | null }>).find(
+        (c) => c.id === coffee.body.data.id,
+      );
+      expect(coffeeAfter).toBeDefined();
+      expect(coffeeAfter?.parentCategoryId).toBeNull();
+    });
+  });
 });

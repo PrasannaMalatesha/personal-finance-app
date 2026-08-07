@@ -2,9 +2,14 @@ import { z } from 'zod';
 
 const HexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Must be #RRGGBB hex');
 
+// parentCategoryId is nullable + optional; explicit null is meaningful
+// (unset to top-level), so we accept null distinctly from undefined.
+const ParentCategoryIdInput = z.string().uuid().nullable().optional();
+
 export const CreateCategoryInput = z.object({
   name: z.string().min(1).max(64).trim(),
   color: HexColor,
+  parentCategoryId: ParentCategoryIdInput,
 });
 export type CreateCategoryInput = z.infer<typeof CreateCategoryInput>;
 
@@ -12,10 +17,15 @@ export const UpdateCategoryInput = z
   .object({
     name: z.string().min(1).max(64).trim().optional(),
     color: HexColor.optional(),
+    parentCategoryId: ParentCategoryIdInput,
   })
-  .refine((data) => data.name !== undefined || data.color !== undefined, {
-    message: 'At least one of name or color must be provided',
-  });
+  .refine(
+    (data) =>
+      data.name !== undefined ||
+      data.color !== undefined ||
+      data.parentCategoryId !== undefined,
+    { message: 'At least one field must be provided' },
+  );
 export type UpdateCategoryInput = z.infer<typeof UpdateCategoryInput>;
 
 export const CategoryPublic = z.object({
@@ -23,6 +33,7 @@ export const CategoryPublic = z.object({
   name: z.string(),
   color: z.string(),
   isSystemDefault: z.boolean(),
+  parentCategoryId: z.string().uuid().nullable(),
   createdAt: z.string(),
 });
 export type CategoryPublic = z.infer<typeof CategoryPublic>;

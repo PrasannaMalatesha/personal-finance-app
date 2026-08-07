@@ -12,6 +12,7 @@ import { NewImportPage } from '../features/imports/NewImportPage';
 import { BudgetsPage } from '../features/budgets/BudgetsPage';
 import { RulesPage } from '../features/rules/RulesPage';
 import { SubscriptionsPage } from '../features/recurring/SubscriptionsPage';
+import { CategoriesPage } from '../features/categories/CategoriesPage';
 import { flags } from '../flags';
 import { ProtectedRoute, PublicOnlyRoute } from './ProtectedRoute';
 
@@ -65,6 +66,9 @@ const router = createBrowserRouter([
           // 404s cleanly when disabled. Matches the backend router mount.
           ...(flags.recurringDetection
             ? [{ path: 'subscriptions', element: <SubscriptionsPage /> }]
+            : []),
+          ...(flags.hierarchicalCategories
+            ? [{ path: 'categories', element: <CategoriesPage /> }]
             : []),
           { path: 'health', element: <HealthPage /> },
         ],

@@ -19,6 +19,7 @@ describe('GET /api/v1/flags', () => {
       recurringDetection: expect.any(Boolean),
       multiCurrency: false,
       netWorth: expect.any(Boolean),
+      hierarchicalCategories: expect.any(Boolean),
     });
   });
 });

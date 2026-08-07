@@ -92,7 +92,7 @@ export function buildContainer(
   // signed value that can't be mistaken for or used as an access token.
   const previewTokenSigner = createPreviewTokenSigner(config.jwtAccessSecret);
   const budgetsService = createBudgetsService({ budgetsRepo, categoriesRepo });
-  const dashboardService = createDashboardService({ dashboardRepo });
+  const dashboardService = createDashboardService({ dashboardRepo, categoriesRepo });
   const rulesService = createRulesService({ rulesRepo, categoriesRepo });
   const recurringService = createRecurringService({ pool, recurringRepo });
   const csvImportService = createCsvImportService({

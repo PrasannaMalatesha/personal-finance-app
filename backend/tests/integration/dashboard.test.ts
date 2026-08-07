@@ -282,6 +282,52 @@ describe('Dashboard (integration)', () => {
         },
       ]);
     });
+
+    it('rolls up subcategory expenses into their parent when hierarchy flag is on', async () => {
+      // Create Coffee as a subcategory of Dining, then charge both.
+      const coffee = await request(app)
+        .post('/api/v1/categories')
+        .set('Cookie', accessCookie)
+        .set('Idempotency-Key', randomUUID())
+        .send({
+          name: 'Coffee',
+          color: '#795548',
+          parentCategoryId: diningId,
+        });
+      expect(coffee.status).toBe(201);
+
+      await createTx(app, accessCookie, {
+        accountId,
+        date: '2026-07-01',
+        amount: '-40.00',
+        categoryId: diningId,
+      });
+      await createTx(app, accessCookie, {
+        accountId,
+        date: '2026-07-02',
+        amount: '-15.00',
+        categoryId: coffee.body.data.id,
+      });
+      await createTx(app, accessCookie, {
+        accountId,
+        date: '2026-07-03',
+        amount: '-100.00',
+        categoryId: groceriesId,
+      });
+
+      const res = await request(app)
+        .get('/api/v1/dashboard/by-category?month=2026-07')
+        .set('Cookie', accessCookie);
+      expect(res.status).toBe(200);
+      const data = res.body.data as Array<{ categoryName: string; amount: string }>;
+      // Coffee ($15) rolled into Dining ($40) → $55. Groceries stays $100.
+      // Order is DESC by amount, so Groceries first, then Dining.
+      expect(data).toHaveLength(2);
+      expect(data[0]).toMatchObject({ categoryName: 'Groceries', amount: '100.00' });
+      expect(data[1]).toMatchObject({ categoryName: 'Dining', amount: '55.00' });
+      // No "Coffee" slice should appear on its own.
+      expect(data.some((s) => s.categoryName === 'Coffee')).toBe(false);
+    });
   });
 
   describe('GET /api/v1/dashboard/trend', () => {

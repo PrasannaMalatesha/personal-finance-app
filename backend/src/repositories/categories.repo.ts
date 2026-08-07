@@ -7,6 +7,7 @@ export interface CategoryRow {
   name: string;
   color: string;
   is_system_default: boolean;
+  parent_category_id: string | null;
   created_at: Date;
 }
 
@@ -18,13 +19,24 @@ export interface CategoriesRepo {
     executor?: Executor,
   ): Promise<CategoryRow | null>;
   create(
-    input: { userId: string; name: string; color: string; isSystemDefault?: boolean },
+    input: {
+      userId: string;
+      name: string;
+      color: string;
+      isSystemDefault?: boolean;
+      parentCategoryId?: string | null;
+    },
     executor?: Executor,
   ): Promise<CategoryRow>;
   update(
     id: string,
     userId: string,
-    patch: { name?: string; color?: string },
+    patch: {
+      name?: string;
+      color?: string;
+      // undefined = no change; null = clear parent (become top-level)
+      parentCategoryId?: string | null;
+    },
     executor?: Executor,
   ): Promise<CategoryRow | null>;
   delete(
@@ -37,6 +49,12 @@ export interface CategoriesRepo {
     categories: ReadonlyArray<{ name: string; color: string }>,
     executor: Executor,
   ): Promise<void>;
+  /** Any children referencing this parent? Used before parent-change validations. */
+  hasChildren(
+    parentId: string,
+    userId: string,
+    executor?: Executor,
+  ): Promise<boolean>;
 }
 
 export function createCategoriesRepo(pool: Pool): CategoriesRepo {
@@ -57,12 +75,15 @@ export function createCategoriesRepo(pool: Pool): CategoriesRepo {
       return rows[0] ?? null;
     },
 
-    async create({ userId, name, color, isSystemDefault = false }, executor = pool) {
+    async create(
+      { userId, name, color, isSystemDefault = false, parentCategoryId = null },
+      executor = pool,
+    ) {
       const { rows } = await executor.query<CategoryRow>(
-        `INSERT INTO categories (user_id, name, color, is_system_default)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO categories (user_id, name, color, is_system_default, parent_category_id)
+         VALUES ($1, $2, $3, $4, $5)
          RETURNING *`,
-        [userId, name, color, isSystemDefault],
+        [userId, name, color, isSystemDefault, parentCategoryId],
       );
       const row = rows[0];
       if (!row) throw new Error('categories.create: no row returned');
@@ -80,6 +101,11 @@ export function createCategoriesRepo(pool: Pool): CategoriesRepo {
       if (patch.color !== undefined) {
         sets.push(`color = $${i++}`);
         values.push(patch.color);
+      }
+      if (patch.parentCategoryId !== undefined) {
+        // Allow null to clear the FK
+        sets.push(`parent_category_id = $${i++}`);
+        values.push(patch.parentCategoryId);
       }
       if (sets.length === 0) {
         return this.findByIdForUser(id, userId, executor);
@@ -116,6 +142,17 @@ export function createCategoriesRepo(pool: Pool): CategoriesRepo {
          VALUES ${placeholders.join(', ')}`,
         values,
       );
+    },
+
+    async hasChildren(parentId, userId, executor = pool) {
+      const { rows } = await executor.query<{ exists: boolean }>(
+        `SELECT EXISTS(
+           SELECT 1 FROM categories
+           WHERE parent_category_id = $1 AND user_id = $2
+         ) AS exists`,
+        [parentId, userId],
+      );
+      return rows[0]?.exists ?? false;
     },
   };
 }
