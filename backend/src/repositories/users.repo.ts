@@ -17,6 +17,11 @@ export interface UsersRepo {
     input: { email: string; passwordHash: string; baseCurrency: string },
     executor?: Executor,
   ): Promise<UserRow>;
+  updatePasswordHash(
+    userId: string,
+    passwordHash: string,
+    executor?: Executor,
+  ): Promise<void>;
 }
 
 export function createUsersRepo(pool: Pool): UsersRepo {
@@ -45,6 +50,12 @@ export function createUsersRepo(pool: Pool): UsersRepo {
       const row = rows[0];
       if (!row) throw new Error('users.create: no row returned');
       return row;
+    },
+    async updatePasswordHash(userId, passwordHash, executor = pool) {
+      await executor.query(
+        `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
+        [passwordHash, userId],
+      );
     },
   };
 }

@@ -23,6 +23,11 @@ const envSchema = z
     FLAG_MULTI_CURRENCY: booleanFromString,
     FLAG_NET_WORTH: booleanFromString,
     FLAG_HIERARCHICAL_CATEGORIES: booleanFromString,
+    FLAG_PASSWORD_RESET: booleanFromString,
+    // Optional. When set, password reset emails are sent via Resend; when
+    // absent, the console adapter logs the reset URL to stdout instead.
+    RESEND_API_KEY: z.string().optional(),
+    RESEND_FROM_EMAIL: z.string().optional(),
   })
   .refine((data) => data.JWT_ACCESS_SECRET !== data.JWT_REFRESH_SECRET, {
     message: 'JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must differ',

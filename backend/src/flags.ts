@@ -6,6 +6,7 @@ export const flags = {
   multiCurrency: env.FLAG_MULTI_CURRENCY,
   netWorth: env.FLAG_NET_WORTH,
   hierarchicalCategories: env.FLAG_HIERARCHICAL_CATEGORIES,
+  passwordReset: env.FLAG_PASSWORD_RESET,
 } as const;
 
 export type Flag = keyof typeof flags;

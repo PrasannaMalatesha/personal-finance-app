@@ -52,6 +52,9 @@ jobs:
       # this flag; keep it on so both branches (rollup + flat) are checked
       # by the test suite.
       FLAG_HIERARCHICAL_CATEGORIES: 'true'
+      # v2 password-reset routes are conditionally mounted; tests need
+      # them reachable.
+      FLAG_PASSWORD_RESET: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

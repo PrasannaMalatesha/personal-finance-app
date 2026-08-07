@@ -11,7 +11,9 @@ import { createImportBatchesRepo } from './repositories/importBatches.repo';
 import { createBudgetsRepo } from './repositories/budgets.repo';
 import { createDashboardRepo } from './repositories/dashboard.repo';
 import { createRecurringRepo } from './repositories/recurring.repo';
+import { createPasswordResetTokensRepo } from './repositories/passwordResetTokens.repo';
 import { createAuthService, type AuthService } from './services/auth.service';
+import { createPasswordResetService } from './services/passwordReset.service';
 import { createCategoriesService } from './services/categories.service';
 import { createAccountsService } from './services/accounts.service';
 import { createCategorizationService } from './services/categorization.service';
@@ -30,7 +32,9 @@ import { createBudgetsController, type BudgetsController } from './controllers/b
 import { createDashboardController, type DashboardController } from './controllers/dashboard.controller';
 import { createRulesController, type RulesController } from './controllers/rules.controller';
 import { createRecurringController, type RecurringController } from './controllers/recurring.controller';
+import { createPasswordResetController, type PasswordResetController } from './controllers/passwordReset.controller';
 import { createAuthMiddleware } from './middleware/auth';
+import { createConsoleEmailAdapter } from './lib/emailAdapter';
 import { createIdempotency, type IdempotencyWrapper } from './middleware/idempotency';
 import { createTokenSigner } from './lib/tokens';
 import { createPreviewTokenSigner } from './lib/previewToken';
@@ -48,6 +52,7 @@ export interface Container {
   dashboardController: DashboardController;
   rulesController: RulesController;
   recurringController: RecurringController;
+  passwordResetController: PasswordResetController;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
   idempotent: IdempotencyWrapper;
 }
@@ -55,6 +60,8 @@ export interface Container {
 export interface ContainerConfig {
   jwtAccessSecret: string;
   jwtRefreshSecret: string;
+  /** Public origin for building reset URLs sent to users. */
+  frontendOrigin: string;
 }
 
 export function buildContainer(
@@ -78,6 +85,7 @@ export function buildContainer(
   const budgetsRepo = createBudgetsRepo(pool);
   const dashboardRepo = createDashboardRepo(pool);
   const recurringRepo = createRecurringRepo(pool);
+  const passwordResetTokensRepo = createPasswordResetTokensRepo(pool);
 
   const categoriesService = createCategoriesService({ categoriesRepo });
   const accountsService = createAccountsService({ accountsRepo });
@@ -95,6 +103,18 @@ export function buildContainer(
   const dashboardService = createDashboardService({ dashboardRepo, categoriesRepo });
   const rulesService = createRulesService({ rulesRepo, categoriesRepo });
   const recurringService = createRecurringService({ pool, recurringRepo });
+  const emailAdapter = createConsoleEmailAdapter(logger);
+  const passwordResetService = createPasswordResetService({
+    pool,
+    usersRepo,
+    passwordResetTokensRepo,
+    refreshTokensRepo,
+    passwordHasher: bcryptHasher,
+    clock: systemClock,
+    logger,
+    emailAdapter,
+    frontendOrigin: config.frontendOrigin,
+  });
   const csvImportService = createCsvImportService({
     pool,
     accountsRepo,
@@ -130,6 +150,7 @@ export function buildContainer(
   const dashboardController = createDashboardController(dashboardService);
   const rulesController = createRulesController(rulesService);
   const recurringController = createRecurringController(recurringService);
+  const passwordResetController = createPasswordResetController(passwordResetService);
   const authMiddleware = createAuthMiddleware(tokenSigner);
   const idempotent = createIdempotency(pool, idempotencyKeysRepo);
 
@@ -144,6 +165,7 @@ export function buildContainer(
     dashboardController,
     rulesController,
     recurringController,
+    passwordResetController,
     authMiddleware,
     idempotent,
   };

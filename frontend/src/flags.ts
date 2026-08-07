@@ -5,4 +5,5 @@ export const flags = {
   netWorth: import.meta.env.VITE_FLAG_NET_WORTH === 'true',
   hierarchicalCategories:
     import.meta.env.VITE_FLAG_HIERARCHICAL_CATEGORIES === 'true',
+  passwordReset: import.meta.env.VITE_FLAG_PASSWORD_RESET === 'true',
 } as const;

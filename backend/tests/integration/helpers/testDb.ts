@@ -9,6 +9,7 @@ const TABLES = [
   'rules',
   'categories',
   'accounts',
+  'password_reset_tokens',
   'refresh_tokens',
   'users',
 ];

@@ -5,6 +5,8 @@ import { AppShell } from '../shared/components/AppShell';
 import { HealthPage } from '../features/health/HealthPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { SignupPage } from '../features/auth/SignupPage';
+import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '../features/auth/ResetPasswordPage';
 import { AccountsPage } from '../features/accounts/AccountsPage';
 import { TransactionsPage } from '../features/transactions/TransactionsPage';
 import { ImportsPage } from '../features/imports/ImportsPage';
@@ -38,6 +40,14 @@ const router = createBrowserRouter([
     children: [
       { path: '/login', element: <LoginPage /> },
       { path: '/signup', element: <SignupPage /> },
+      // Public-only routes — signed-in users get redirected to /dashboard.
+      // Only registered when the flag is on so the URLs 404 cleanly otherwise.
+      ...(flags.passwordReset
+        ? [
+            { path: '/forgot-password', element: <ForgotPasswordPage /> },
+            { path: '/reset-password', element: <ResetPasswordPage /> },
+          ]
+        : []),
     ],
   },
   {

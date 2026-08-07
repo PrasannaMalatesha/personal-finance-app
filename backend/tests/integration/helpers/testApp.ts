@@ -9,6 +9,7 @@ export function buildTestApp(pool: Pool): Express {
   const container = buildContainer(pool, logger, {
     jwtAccessSecret: process.env.JWT_ACCESS_SECRET!,
     jwtRefreshSecret: process.env.JWT_REFRESH_SECRET!,
+    frontendOrigin: process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173',
   });
   return createApp(container);
 }
