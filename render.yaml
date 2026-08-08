@@ -37,6 +37,14 @@ services:
         value: 'false'
       - key: FLAG_HIERARCHICAL_CATEGORIES
         value: 'false'
+      - key: FLAG_PASSWORD_RESET
+        value: 'false'
+      # Optional — set both to enable real email sending via Resend. When
+      # empty (default), the console adapter logs the reset URL instead.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
       # Secrets — set in Render dashboard, not in this file.
       - key: DATABASE_URL
         sync: false

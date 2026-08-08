@@ -35,3 +35,13 @@ export interface AuthUser {
   email: string;
   baseCurrency: BaseCurrency;
 }
+
+export const RequestResetSchema = z.object({
+  email: z.string().trim().min(1, 'Required').email('Enter a valid email'),
+});
+export type RequestResetInput = z.infer<typeof RequestResetSchema>;
+
+export const ResetPasswordSchema = z.object({
+  newPassword: z.string().min(8, 'At least 8 characters'),
+});
+export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;

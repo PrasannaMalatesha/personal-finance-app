@@ -17,6 +17,7 @@ import { createBudgetsRouter } from './routes/budgets.routes';
 import { createDashboardRouter } from './routes/dashboard.routes';
 import { createRulesRouter } from './routes/rules.routes';
 import { createRecurringRouter } from './routes/recurring.routes';
+import { createPasswordResetRouter } from './routes/passwordReset.routes';
 import { flags } from './flags';
 import type { Container } from './container';
 
@@ -97,6 +98,14 @@ export function createApp(container: Container): Express {
     app.use(
       '/api/v1/recurring',
       createRecurringRouter(container.recurringController, container.authMiddleware),
+    );
+  }
+  // Password reset lives under /auth/* so it's colocated with signup/login
+  // — same conditional-mount pattern as the other v2 features.
+  if (flags.passwordReset) {
+    app.use(
+      '/api/v1/auth',
+      createPasswordResetRouter(container.passwordResetController),
     );
   }
 

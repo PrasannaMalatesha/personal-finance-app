@@ -36,3 +36,20 @@ export async function me(): Promise<AuthUser> {
   const res = await apiFetch<FlatUserResponse>('/api/v1/auth/me');
   return res.data;
 }
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  await apiFetch<{ data: { ok: boolean } }>('/api/v1/auth/request-reset', {
+    method: 'POST',
+    json: { email },
+  });
+}
+
+export async function resetPassword(input: {
+  token: string;
+  newPassword: string;
+}): Promise<void> {
+  await apiFetch<{ data: { ok: boolean } }>('/api/v1/auth/reset-password', {
+    method: 'POST',
+    json: input,
+  });
+}

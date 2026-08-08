@@ -20,6 +20,7 @@ describe('GET /api/v1/flags', () => {
       multiCurrency: false,
       netWorth: expect.any(Boolean),
       hierarchicalCategories: expect.any(Boolean),
+      passwordReset: expect.any(Boolean),
     });
   });
 });

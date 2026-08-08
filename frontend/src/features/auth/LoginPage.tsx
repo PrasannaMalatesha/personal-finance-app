@@ -16,6 +16,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { AuthShell } from '../../shared/components/AuthShell';
 import { ApiError } from '../../shared/api/client';
+import { flags } from '../../flags';
 import { LoginSchema, type LoginInput } from './schemas';
 import { useLogin } from './useAuth';
 
@@ -29,6 +30,9 @@ export function LoginPage() {
   const login = useLogin();
   const [showPassword, setShowPassword] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // Set by ResetPasswordPage after a successful reset — one-time success
+  // banner so the user knows why they're back at the login screen.
+  const resetSuccess = new URLSearchParams(location.search).get('reset') === 'success';
 
   const {
     register,
@@ -72,6 +76,11 @@ export function LoginPage() {
     >
       <Box component="form" noValidate onSubmit={onSubmit}>
         <Stack spacing={2.5}>
+          {resetSuccess && (
+            <Alert severity="success">
+              Password updated — log in with your new password.
+            </Alert>
+          )}
           {submitError && <Alert severity="error">{submitError}</Alert>}
 
           <TextField
@@ -120,6 +129,14 @@ export function LoginPage() {
           >
             {isSubmitting ? 'Logging in…' : 'Log in'}
           </Button>
+
+          {flags.passwordReset && (
+            <Box sx={{ textAlign: 'center' }}>
+              <Link component={RouterLink} to="/forgot-password" variant="body2">
+                Forgot your password?
+              </Link>
+            </Box>
+          )}
         </Stack>
       </Box>
     </AuthShell>
