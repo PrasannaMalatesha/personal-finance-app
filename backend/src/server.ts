@@ -11,6 +11,8 @@ const container = buildContainer(pool, logger, {
   jwtAccessSecret: env.JWT_ACCESS_SECRET,
   jwtRefreshSecret: env.JWT_REFRESH_SECRET,
   frontendOrigin: env.FRONTEND_ORIGIN,
+  resendApiKey: env.RESEND_API_KEY,
+  resendFromEmail: env.RESEND_FROM_EMAIL,
 });
 
 const app = createApp(container);
