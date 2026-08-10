@@ -24,7 +24,18 @@ Full-stack personal finance app: multiple accounts, manual + CSV transaction ent
 | CSV import | Upload → parse (6 bank presets + generic fallback) → preview with duplicate detection → confirm → commit atomically; undo a batch |
 | Budgets | Set monthly cap per category, cards show spent/limit/progress, over-budget flagged in red |
 | Dashboard | "This month" summary card, spending-by-category donut, 6-month income vs expenses trend line |
-| Non-functional | Zod validation at every route, `Idempotency-Key` middleware on all unsafe POSTs, parameterized SQL, structured logging (pino), 170+ tests (backend integration + frontend RTL) |
+| Non-functional | Zod validation at every route, `Idempotency-Key` middleware on all unsafe POSTs, parameterized SQL, structured logging (pino), 260+ tests (backend integration + frontend RTL) |
+
+## Behind feature flags (v2)
+
+Shipped and merged, off by default in prod. Flip the flag in Render (backend) and Vercel (frontend, `VITE_FLAG_*`) to enable per-feature.
+
+| Flag | Feature |
+|---|---|
+| `FLAG_RECURRING` | Subscriptions page detects recurring charges (±5% amount, 28–33 day cadence heuristic) |
+| `FLAG_NET_WORTH` | Net-worth area chart on the dashboard (6-month cumulative flow) |
+| `FLAG_HIERARCHICAL_CATEGORIES` | Depth-2 parent/child categories + management page + dashboard rollup |
+| `FLAG_PASSWORD_RESET` | Email-based password reset (console adapter today; Resend adapter is a follow-up) |
 
 ## Architecture
 
@@ -85,7 +96,7 @@ cd backend && npm run seed:demo
 ## Testing
 
 ```bash
-# Backend: 170+ integration tests hitting a real Postgres
+# Backend: 200+ integration tests hitting a real Postgres
 cd backend && npm test
 
 # Frontend: RTL happy-path
