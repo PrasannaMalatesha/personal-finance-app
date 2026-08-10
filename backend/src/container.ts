@@ -34,7 +34,10 @@ import { createRulesController, type RulesController } from './controllers/rules
 import { createRecurringController, type RecurringController } from './controllers/recurring.controller';
 import { createPasswordResetController, type PasswordResetController } from './controllers/passwordReset.controller';
 import { createAuthMiddleware } from './middleware/auth';
-import { createConsoleEmailAdapter } from './lib/emailAdapter';
+import {
+  createConsoleEmailAdapter,
+  createResendEmailAdapter,
+} from './lib/emailAdapter';
 import { createIdempotency, type IdempotencyWrapper } from './middleware/idempotency';
 import { createTokenSigner } from './lib/tokens';
 import { createPreviewTokenSigner } from './lib/previewToken';
@@ -62,6 +65,27 @@ export interface ContainerConfig {
   jwtRefreshSecret: string;
   /** Public origin for building reset URLs sent to users. */
   frontendOrigin: string;
+  /** Both must be present to enable Resend; otherwise the console adapter runs. */
+  resendApiKey?: string;
+  resendFromEmail?: string;
+}
+
+function pickEmailAdapter(config: ContainerConfig, logger: Logger) {
+  if (config.resendApiKey && config.resendFromEmail) {
+    logger.info(
+      { fromEmail: config.resendFromEmail },
+      'Password reset email adapter: Resend',
+    );
+    return createResendEmailAdapter({
+      apiKey: config.resendApiKey,
+      fromEmail: config.resendFromEmail,
+      logger,
+    });
+  }
+  logger.info(
+    'Password reset email adapter: console (set RESEND_API_KEY + RESEND_FROM_EMAIL to enable real email)',
+  );
+  return createConsoleEmailAdapter(logger);
 }
 
 export function buildContainer(
@@ -103,7 +127,7 @@ export function buildContainer(
   const dashboardService = createDashboardService({ dashboardRepo, categoriesRepo });
   const rulesService = createRulesService({ rulesRepo, categoriesRepo });
   const recurringService = createRecurringService({ pool, recurringRepo });
-  const emailAdapter = createConsoleEmailAdapter(logger);
+  const emailAdapter = pickEmailAdapter(config, logger);
   const passwordResetService = createPasswordResetService({
     pool,
     usersRepo,
