@@ -100,6 +100,7 @@ function makeMocks(overrides: {
       nextCursor: 'cursor-2',
       hasMore: false,
     })),
+    removeItem: vi.fn(async () => {}),
     ...overrides.adapter,
   };
   const itemsRepo: PlaidItemsRepo = {
