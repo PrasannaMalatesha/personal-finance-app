@@ -10,6 +10,8 @@ export interface AccountRow {
   type: AccountType;
   currency: string;
   opening_balance: string; // pg returns NUMERIC as string
+  plaid_account_id: string | null;
+  plaid_item_id: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -32,6 +34,8 @@ export interface AccountsRepo {
       type: AccountType;
       currency: string;
       openingBalance: string;
+      plaidAccountId?: string | null;
+      plaidItemId?: string | null;
     },
     executor?: Executor,
   ): Promise<AccountRow>;
@@ -76,12 +80,24 @@ export function createAccountsRepo(pool: Pool): AccountsRepo {
       return rows[0] ?? null;
     },
 
-    async create({ userId, name, type, currency, openingBalance }, executor = pool) {
+    async create(
+      { userId, name, type, currency, openingBalance, plaidAccountId, plaidItemId },
+      executor = pool,
+    ) {
       const { rows } = await executor.query<AccountRow>(
-        `INSERT INTO accounts (user_id, name, type, currency, opening_balance)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO accounts
+           (user_id, name, type, currency, opening_balance, plaid_account_id, plaid_item_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING *`,
-        [userId, name, type, currency, openingBalance],
+        [
+          userId,
+          name,
+          type,
+          currency,
+          openingBalance,
+          plaidAccountId ?? null,
+          plaidItemId ?? null,
+        ],
       );
       const row = rows[0];
       if (!row) throw new Error('accounts.create: no row returned');

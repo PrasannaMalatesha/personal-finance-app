@@ -18,6 +18,7 @@ import { createDashboardRouter } from './routes/dashboard.routes';
 import { createRulesRouter } from './routes/rules.routes';
 import { createRecurringRouter } from './routes/recurring.routes';
 import { createPasswordResetRouter } from './routes/passwordReset.routes';
+import { createPlaidRouter } from './routes/plaid.routes';
 import { flags } from './flags';
 import type { Container } from './container';
 
@@ -106,6 +107,15 @@ export function createApp(container: Container): Express {
     app.use(
       '/api/v1/auth',
       createPasswordResetRouter(container.passwordResetController),
+    );
+  }
+  // Plaid is doubly gated: the flag AND the controller being present
+  // (which requires PLAID_CLIENT_ID + PLAID_SECRET in env). Either
+  // condition unmet → routes 404, no cost.
+  if (flags.plaid && container.plaidController) {
+    app.use(
+      '/api/v1/plaid',
+      createPlaidRouter(container.plaidController, container.authMiddleware),
     );
   }
 
