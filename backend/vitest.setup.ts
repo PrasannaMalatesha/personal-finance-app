@@ -14,6 +14,7 @@ const defaults: Record<string, string> = {
   FLAG_NET_WORTH: 'true',
   FLAG_HIERARCHICAL_CATEGORIES: 'true',
   FLAG_PASSWORD_RESET: 'true',
+  FLAG_RULE_LEARNING: 'true',
 };
 
 for (const [key, value] of Object.entries(defaults)) {

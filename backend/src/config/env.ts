@@ -24,6 +24,7 @@ const envSchema = z
     FLAG_NET_WORTH: booleanFromString,
     FLAG_HIERARCHICAL_CATEGORIES: booleanFromString,
     FLAG_PASSWORD_RESET: booleanFromString,
+    FLAG_RULE_LEARNING: booleanFromString,
     // Optional. When set, password reset emails are sent via Resend; when
     // absent, the console adapter logs the reset URL to stdout instead.
     RESEND_API_KEY: z.string().optional(),

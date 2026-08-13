@@ -49,6 +49,15 @@ export interface RulesRepo {
   ): Promise<RuleRow | null>;
   delete(id: string, userId: string, executor?: Executor): Promise<boolean>;
   /**
+   * True if any existing rule has the same (matchType, lowercased matchValue)
+   * for this user — regardless of which category it points at. Used by the
+   * rule-learning suggester to skip suggestions the user has already made.
+   */
+  existsWithPattern(
+    input: { userId: string; matchType: RuleMatchType; matchValue: string },
+    executor?: Executor,
+  ): Promise<boolean>;
+  /**
    * Seed default rules atomically inside the signup transaction. Each seed
    * row resolves its category by name from the just-seeded categories — no
    * round-trips per rule.
@@ -153,6 +162,18 @@ export function createRulesRepo(pool: Pool): RulesRepo {
         values,
       );
       return rows[0] ?? null;
+    },
+
+    async existsWithPattern({ userId, matchType, matchValue }, executor = pool) {
+      const { rows } = await executor.query<{ one: number }>(
+        `SELECT 1 AS one FROM rules
+          WHERE user_id = $1
+            AND match_type = $2
+            AND LOWER(match_value) = LOWER($3)
+          LIMIT 1`,
+        [userId, matchType, matchValue],
+      );
+      return rows.length > 0;
     },
 
     async delete(id, userId, executor = pool) {

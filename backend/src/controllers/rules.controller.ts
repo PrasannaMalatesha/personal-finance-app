@@ -1,5 +1,5 @@
 import type { RulesService } from '../services/rules.service';
-import { CreateRuleInput, UpdateRuleInput } from '../schemas/rules';
+import { CreateRuleInput, LearnRuleInput, UpdateRuleInput } from '../schemas/rules';
 import type { AuthedRequest } from '../lib/handler';
 
 export interface RulesController {
@@ -7,6 +7,7 @@ export interface RulesController {
   create(req: AuthedRequest): Promise<{ status: number; body: unknown }>;
   update(req: AuthedRequest): Promise<{ status: number; body: unknown }>;
   remove(req: AuthedRequest): Promise<{ status: number; body: unknown }>;
+  learn(req: AuthedRequest): Promise<{ status: number; body: unknown }>;
 }
 
 export function createRulesController(service: RulesService): RulesController {
@@ -31,6 +32,12 @@ export function createRulesController(service: RulesService): RulesController {
     async remove(req) {
       await service.remove(req.user.id, req.params.id!);
       return { status: 204, body: undefined };
+    },
+
+    async learn(req) {
+      const input = LearnRuleInput.parse(req.body);
+      const result = await service.learnRule(req.user.id, input);
+      return { status: 201, body: { data: result } };
     },
   };
 }

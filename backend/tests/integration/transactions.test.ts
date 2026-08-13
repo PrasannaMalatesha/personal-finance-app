@@ -511,6 +511,88 @@ describe('Transactions (integration)', () => {
         .send({ description: 'hijacked' });
       expect(res.status).toBe(404);
     });
+
+    it('rule-learning: returns suggestedRule when category changes from null → something', async () => {
+      const accountId = await createAccount(app, accessCookie, 'Checking');
+      // Synthetic merchant names that do NOT match any seed rule — ensures
+      // rows start truly uncategorised, so the PATCH is the first
+      // categorisation and the suggestion actually fires.
+      for (const desc of ['COFFEEHUB #4521', 'COFFEEHUB #9911']) {
+        await request(app)
+          .post('/api/v1/transactions')
+          .set('Cookie', accessCookie)
+          .set('Idempotency-Key', randomUUID())
+          .send({
+            accountId,
+            date: '2026-07-15',
+            description: desc,
+            amount: '-6.00',
+            categoryId: null,
+          });
+      }
+      const list = await request(app)
+        .get('/api/v1/transactions')
+        .set('Cookie', accessCookie);
+      const first = list.body.data[0];
+
+      const cats = await request(app).get('/api/v1/categories').set('Cookie', accessCookie);
+      const diningId = (cats.body.data as Array<{ id: string; name: string }>).find(
+        (c) => c.name === 'Dining',
+      )!.id;
+
+      const res = await request(app)
+        .patch(`/api/v1/transactions/${first.id}`)
+        .set('Cookie', accessCookie)
+        .send({ categoryId: diningId });
+      expect(res.status).toBe(200);
+      expect(res.body.suggestedRule).toMatchObject({
+        pattern: 'coffeehub',
+        matchType: 'substring',
+        categoryId: diningId,
+        matchingCount: 1,
+      });
+    });
+
+    it('rule-learning: POST /rules/learned creates the rule and back-applies', async () => {
+      const accountId = await createAccount(app, accessCookie, 'Checking');
+      for (const desc of ['CABDIRECT 4444', 'CABDIRECT 8888', 'CABDIRECT 9999']) {
+        await request(app)
+          .post('/api/v1/transactions')
+          .set('Cookie', accessCookie)
+          .set('Idempotency-Key', randomUUID())
+          .send({
+            accountId,
+            date: '2026-07-15',
+            description: desc,
+            amount: '-10.00',
+            categoryId: null,
+          });
+      }
+      const cats = await request(app).get('/api/v1/categories').set('Cookie', accessCookie);
+      const transportId = (cats.body.data as Array<{ id: string; name: string }>).find(
+        (c) => c.name === 'Transport',
+      )!.id;
+
+      const learn = await request(app)
+        .post('/api/v1/rules/learned')
+        .set('Cookie', accessCookie)
+        .send({ pattern: 'cabdirect', categoryId: transportId, applyToExisting: true });
+      expect(learn.status).toBe(201);
+      expect(learn.body.data.backAppliedCount).toBe(3);
+      expect(learn.body.data.rule).toMatchObject({
+        matchType: 'substring',
+        matchValue: 'cabdirect',
+      });
+
+      // Verify existing transactions are now categorised.
+      const after = await request(app)
+        .get(`/api/v1/transactions?accountId=${accountId}`)
+        .set('Cookie', accessCookie);
+      const uncategorised = (after.body.data as Array<{ categoryId: string | null }>).filter(
+        (t) => t.categoryId !== transportId,
+      );
+      expect(uncategorised).toHaveLength(0);
+    });
   });
 
   describe('DELETE /api/v1/transactions/:id', () => {

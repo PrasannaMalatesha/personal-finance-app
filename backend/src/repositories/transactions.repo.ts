@@ -90,6 +90,33 @@ export interface TransactionsRepo {
     userId: string,
     executor: Executor,
   ): Promise<number>;
+  /**
+   * Rule-learning: how many of this user's transactions have a description
+   * containing `pattern` AND are either uncategorized or in a different
+   * category than the target. Excludes the transaction the user just edited.
+   */
+  countRuleLearningMatches(
+    input: {
+      userId: string;
+      pattern: string;
+      targetCategoryId: string;
+      excludeTransactionId: string;
+    },
+    executor?: Executor,
+  ): Promise<number>;
+  /**
+   * Rule-learning back-apply: set category_id on all matching transactions
+   * for this user (same match criteria as countRuleLearningMatches). Returns
+   * the number of rows updated.
+   */
+  applyRuleLearning(
+    input: {
+      userId: string;
+      pattern: string;
+      targetCategoryId: string;
+    },
+    executor?: Executor,
+  ): Promise<number>;
 }
 
 const SELECT_COLS = `
@@ -317,6 +344,37 @@ export function createTransactionsRepo(pool: Pool): TransactionsRepo {
         [accountId, dates, amounts, descriptions],
       );
       return rows;
+    },
+
+    async countRuleLearningMatches(
+      { userId, pattern, targetCategoryId, excludeTransactionId },
+      executor = pool,
+    ) {
+      const { rows } = await executor.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count
+           FROM transactions t
+           JOIN accounts a ON a.id = t.account_id
+          WHERE a.user_id = $1
+            AND LOWER(t.description) LIKE '%' || LOWER($2) || '%'
+            AND (t.category_id IS DISTINCT FROM $3)
+            AND t.id <> $4`,
+        [userId, pattern, targetCategoryId, excludeTransactionId],
+      );
+      return Number(rows[0]?.count ?? 0);
+    },
+
+    async applyRuleLearning({ userId, pattern, targetCategoryId }, executor = pool) {
+      const { rowCount } = await executor.query(
+        `UPDATE transactions t
+            SET category_id = $3, updated_at = NOW()
+           FROM accounts a
+          WHERE t.account_id = a.id
+            AND a.user_id = $1
+            AND LOWER(t.description) LIKE '%' || LOWER($2) || '%'
+            AND t.category_id IS DISTINCT FROM $3`,
+        [userId, pattern, targetCategoryId],
+      );
+      return rowCount ?? 0;
     },
   };
 }

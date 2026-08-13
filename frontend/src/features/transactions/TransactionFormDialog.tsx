@@ -27,6 +27,7 @@ import {
   useDeleteTransaction,
   useUpdateTransaction,
 } from './useTransactions';
+import type { RuleSuggestion } from './transactionsApi';
 
 interface Props {
   open: boolean;
@@ -35,6 +36,8 @@ interface Props {
   categories: readonly CategoryPublic[];
   editing?: TransactionPublic | null;
   defaultAccountId?: string;
+  /** Called when an update produced a rule-learning suggestion. */
+  onRuleSuggested?: (suggestion: RuleSuggestion) => void;
 }
 
 const UNCATEGORIZED = '__UNCATEGORIZED__';
@@ -46,6 +49,7 @@ export function TransactionFormDialog({
   categories,
   editing,
   defaultAccountId,
+  onRuleSuggested,
 }: Props) {
   const mode = editing ? 'edit' : 'create';
   const create = useCreateTransaction();
@@ -95,7 +99,10 @@ export function TransactionFormDialog({
     setError(null);
     try {
       if (editing) {
-        await update.mutateAsync({ id: editing.id, patch: input });
+        const result = await update.mutateAsync({ id: editing.id, patch: input });
+        if (result.suggestedRule && onRuleSuggested) {
+          onRuleSuggested(result.suggestedRule);
+        }
       } else {
         await create.mutateAsync({ input, idempotencyKey });
       }

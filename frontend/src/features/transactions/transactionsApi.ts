@@ -14,6 +14,19 @@ interface OneResponse {
   data: TransactionPublic;
 }
 
+export interface RuleSuggestion {
+  pattern: string;
+  matchType: 'substring';
+  categoryId: string;
+  categoryName: string;
+  matchingCount: number;
+}
+
+interface UpdateResponse {
+  data: TransactionPublic;
+  suggestedRule: RuleSuggestion | null;
+}
+
 function buildQuery(filters: TransactionsFilters, cursor?: string): string {
   const params = new URLSearchParams();
   if (filters.accountId) params.set('accountId', filters.accountId);
@@ -63,14 +76,39 @@ export async function createTransaction(
 export async function updateTransaction(
   id: string,
   patch: TransactionFormInput,
-): Promise<TransactionPublic> {
-  const res = await apiFetch<OneResponse>(`/api/v1/transactions/${id}`, {
+): Promise<UpdateResponse> {
+  return apiFetch<UpdateResponse>(`/api/v1/transactions/${id}`, {
     method: 'PATCH',
     json: normalizePayload(patch),
   });
-  return res.data;
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
   await apiFetch<void>(`/api/v1/transactions/${id}`, { method: 'DELETE' });
+}
+
+export interface LearnRuleResult {
+  rule: {
+    id: string;
+    matchType: string;
+    matchValue: string;
+    categoryId: string;
+    categoryName: string;
+    color: string;
+    priority: number;
+    createdAt: string;
+  };
+  backAppliedCount: number;
+}
+
+export async function learnRule(input: {
+  pattern: string;
+  categoryId: string;
+  applyToExisting: boolean;
+}): Promise<LearnRuleResult> {
+  const res = await apiFetch<{ data: LearnRuleResult }>('/api/v1/rules/learned', {
+    method: 'POST',
+    json: input,
+  });
+  return res.data;
 }

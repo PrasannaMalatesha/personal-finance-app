@@ -21,6 +21,7 @@ describe('GET /api/v1/flags', () => {
       netWorth: expect.any(Boolean),
       hierarchicalCategories: expect.any(Boolean),
       passwordReset: expect.any(Boolean),
+      ruleLearning: expect.any(Boolean),
     });
   });
 });

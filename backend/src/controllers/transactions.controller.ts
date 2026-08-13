@@ -1,4 +1,5 @@
 import type { TransactionsService } from '../services/transactions.service';
+import type { RulesService } from '../services/rules.service';
 import {
   CreateTransactionInput,
   ListTransactionsQuery,
@@ -6,6 +7,7 @@ import {
 } from '../schemas/transactions';
 import type { AuthedRequest } from '../lib/handler';
 import type { IdempotencyContext } from '../middleware/idempotency';
+import { flags } from '../flags';
 
 export interface TransactionsController {
   list(req: AuthedRequest): Promise<{ status: number; body: unknown }>;
@@ -19,6 +21,7 @@ export interface TransactionsController {
 
 export function createTransactionsController(
   service: TransactionsService,
+  rulesService: RulesService,
 ): TransactionsController {
   return {
     async list(req) {
@@ -35,8 +38,31 @@ export function createTransactionsController(
 
     async update(req) {
       const patch = UpdateTransactionInput.parse(req.body);
-      const tx = await service.update(req.user.id, req.params.id!, patch);
-      return { status: 200, body: { data: tx } };
+      const { transaction, previousCategoryId } = await service.update(
+        req.user.id,
+        req.params.id!,
+        patch,
+      );
+      // Rule-learning: only offer a suggestion when the category actually
+      // changed to a non-null value. Skip when the flag is off. Failure in
+      // suggest logic must not break the update — swallow + log via throw.
+      let suggestedRule = null;
+      if (
+        flags.ruleLearning &&
+        transaction.categoryId &&
+        transaction.categoryId !== previousCategoryId
+      ) {
+        try {
+          suggestedRule = await rulesService.suggestForTransaction(req.user.id, {
+            transactionId: transaction.id,
+            description: transaction.description,
+            categoryId: transaction.categoryId,
+          });
+        } catch {
+          suggestedRule = null;
+        }
+      }
+      return { status: 200, body: { data: transaction, suggestedRule } };
     },
 
     async remove(req) {

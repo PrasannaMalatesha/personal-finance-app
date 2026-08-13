@@ -28,6 +28,9 @@ import { useTransactions } from './useTransactions';
 import type { TransactionPublic, TransactionsFilters as Filters } from './schemas';
 import { TransactionsFilters, UNCATEGORIZED_SENTINEL } from './TransactionsFilters';
 import { TransactionFormDialog } from './TransactionFormDialog';
+import { RuleSuggestionSnackbar } from './RuleSuggestionSnackbar';
+import type { RuleSuggestion } from './transactionsApi';
+import { flags } from '../../flags';
 
 export function TransactionsPage() {
   const { user } = useAuth();
@@ -72,6 +75,7 @@ export function TransactionsPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TransactionPublic | null>(null);
+  const [ruleSuggestion, setRuleSuggestion] = useState<RuleSuggestion | null>(null);
   const openCreate = () => {
     setEditing(null);
     setDialogOpen(true);
@@ -231,6 +235,14 @@ export function TransactionsPage() {
           categories={categories.data ?? []}
           editing={editing}
           defaultAccountId={filters.accountId}
+          onRuleSuggested={flags.ruleLearning ? setRuleSuggestion : undefined}
+        />
+      )}
+
+      {flags.ruleLearning && (
+        <RuleSuggestionSnackbar
+          suggestion={ruleSuggestion}
+          onDismiss={() => setRuleSuggestion(null)}
         />
       )}
 

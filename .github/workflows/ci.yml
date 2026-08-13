@@ -55,6 +55,9 @@ jobs:
       # v2 password-reset routes are conditionally mounted; tests need
       # them reachable.
       FLAG_PASSWORD_RESET: 'true'
+      # v3 rule-learning: POST /rules/learned is conditionally mounted +
+      # PATCH /transactions returns suggestedRule only when this is on.
+      FLAG_RULE_LEARNING: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

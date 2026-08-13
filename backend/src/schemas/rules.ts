@@ -42,6 +42,15 @@ export const RulePublic = z.object({
 });
 export type RulePublic = z.infer<typeof RulePublic>;
 
+// Rule-learning: minimal input — the pattern always uses substring matching,
+// and the client passes the target category + whether to back-apply.
+export const LearnRuleInput = z.object({
+  pattern: z.string().trim().min(3).max(120),
+  categoryId: z.string().uuid(),
+  applyToExisting: z.boolean().default(false),
+});
+export type LearnRuleInput = z.infer<typeof LearnRuleInput>;
+
 /**
  * Ships with 15 rules covering common merchants across both regions the app
  * targets (India + US) — matches the "~15 seed rules" mentioned in PRD §5.1.
