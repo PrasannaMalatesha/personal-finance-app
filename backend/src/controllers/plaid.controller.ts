@@ -19,6 +19,7 @@ export interface PlaidController {
   exchange(req: AuthedRequest): Promise<{ status: number; body: unknown }>;
   syncItem(req: AuthedRequest): Promise<{ status: number; body: unknown }>;
   listItems(req: AuthedRequest): Promise<{ status: number; body: unknown }>;
+  removeItem(req: AuthedRequest): Promise<{ status: number; body: unknown }>;
 }
 
 export function createPlaidController(service: PlaidService): PlaidController {
@@ -44,6 +45,13 @@ export function createPlaidController(service: PlaidService): PlaidController {
     async listItems(req) {
       const rows = await service.listItems(req.user.id);
       return { status: 200, body: { data: rows.map(toPublic) } };
+    },
+
+    async removeItem(req) {
+      const id = req.params.id;
+      if (!id) throw new NotFoundError('PlaidItem');
+      await service.removeItem(req.user.id, id);
+      return { status: 204, body: undefined };
     },
   };
 }

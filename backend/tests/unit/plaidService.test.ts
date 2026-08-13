@@ -107,6 +107,7 @@ function makeMocks(overrides: {
     findByIdForUser: vi.fn(async () => item),
     upsertByItemId: vi.fn(async () => item),
     updateCursor: vi.fn(async () => {}),
+    deleteById: vi.fn(async () => true),
     ...overrides.itemsRepo,
   };
   const accountsRepo: AccountsRepo = {

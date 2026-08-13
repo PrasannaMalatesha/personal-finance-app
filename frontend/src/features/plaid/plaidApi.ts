@@ -54,3 +54,7 @@ export async function syncItem(id: string): Promise<PlaidSyncResult> {
   );
   return res.data;
 }
+
+export async function removeItem(id: string): Promise<void> {
+  await apiFetch<void>(`/api/v1/plaid/items/${id}`, { method: 'DELETE' });
+}

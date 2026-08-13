@@ -18,6 +18,7 @@ import { createFxService } from './services/fx.service';
 import { createPlaidItemsRepo } from './repositories/plaidItems.repo';
 import { createPlaidAdapter } from './lib/plaidAdapter';
 import { createPlaidService, type PlaidService } from './services/plaid.service';
+import { createAesGcm } from './lib/crypto';
 import {
   createPlaidController,
   type PlaidController,
@@ -92,6 +93,8 @@ export interface ContainerConfig {
   plaidEnv?: 'sandbox' | 'development' | 'production';
   /** Shown as the connecting-app name inside Plaid Link. */
   plaidClientName?: string;
+  /** AES-256-GCM key (base64, 32 bytes) for encrypting access tokens at rest. */
+  plaidEncryptionKey?: string;
   /** Google OAuth: both required together to enable sign-in-with-Google. */
   googleClientId?: string;
   googleClientSecret?: string;
@@ -142,7 +145,23 @@ export function buildContainer(
   const fxRatesRepo = createFxRatesRepo(pool);
   const fxAdapter = createFrankfurterAdapter({ logger });
   const fxService = createFxService({ fxAdapter, fxRatesRepo, logger });
-  const plaidItemsRepo = createPlaidItemsRepo(pool);
+  // Encrypt Plaid access tokens at rest when a key is configured. Sandbox
+  // may run without one for zero-config dev; development/production must
+  // provide it (see plaid.ts + README).
+  const plaidCipher = config.plaidEncryptionKey
+    ? createAesGcm(config.plaidEncryptionKey)
+    : null;
+  if (
+    !plaidCipher &&
+    config.plaidClientId &&
+    config.plaidSecret &&
+    (config.plaidEnv === 'development' || config.plaidEnv === 'production')
+  ) {
+    throw new Error(
+      `Plaid ${config.plaidEnv} tier requires PLAID_ENCRYPTION_KEY; storing access tokens plaintext is refused`,
+    );
+  }
+  const plaidItemsRepo = createPlaidItemsRepo(pool, plaidCipher);
 
   const categoriesService = createCategoriesService({ categoriesRepo });
   const accountsService = createAccountsService({ accountsRepo, usersRepo });

@@ -43,3 +43,16 @@ export function useSyncItem() {
     },
   });
 }
+
+export function useRemoveItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.removeItem,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY });
+      // Local accounts stay (plaid_item_id gets nulled server-side), but
+      // their "connected" status changes; refresh so any dependent UI updates.
+      qc.invalidateQueries({ queryKey: ['accounts'] });
+    },
+  });
+}

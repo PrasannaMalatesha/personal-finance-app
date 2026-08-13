@@ -36,6 +36,13 @@ const envSchema = z
     PLAID_CLIENT_ID: z.string().optional(),
     PLAID_SECRET: z.string().optional(),
     PLAID_ENV: z.enum(['sandbox', 'development', 'production']).default('sandbox'),
+    // AES-256-GCM key (base64-encoded 32 bytes). REQUIRED when moving beyond
+    // sandbox — access tokens grant ongoing bank-data access and must not
+    // sit plaintext in the DB in a live environment. Generate with:
+    //   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+    // When absent + PLAID_ENV=sandbox, we allow plaintext-at-rest to keep the
+    // dev workflow zero-config. Container enforces this — see plaid.ts.
+    PLAID_ENCRYPTION_KEY: z.string().optional(),
     // Google OAuth — both required together to enable /auth/oauth/google/*.
     // API_BASE_URL is the public origin of this backend, used to build the
     // Google redirect URI (must exactly match what's registered in the

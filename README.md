@@ -36,6 +36,30 @@ Shipped and merged, off by default in prod. Flip the flag in Render (backend) an
 | `FLAG_NET_WORTH` | Net-worth area chart on the dashboard (6-month cumulative flow) |
 | `FLAG_HIERARCHICAL_CATEGORIES` | Depth-2 parent/child categories + management page + dashboard rollup |
 | `FLAG_PASSWORD_RESET` | Email-based password reset (console adapter today; Resend adapter is a follow-up) |
+| `FLAG_MULTI_CURRENCY` | Per-account currency + FX conversion via Frankfurter (ECB) rates |
+| `FLAG_PLAID` | Bank linking via Plaid (sandbox by default; see the Plaid tier section below for Development) |
+| `FLAG_RULE_LEARNING` | After a manual recategorization, suggest promoting the pattern to an auto-rule |
+| `FLAG_OAUTH` | Sign in with Google (needs `GOOGLE_OAUTH_CLIENT_ID` + `GOOGLE_OAUTH_CLIENT_SECRET`) |
+
+## Plaid: switching sandbox → development tier
+
+Sandbox is the default and needs zero setup beyond the client ID + secret. To connect **real banks**, upgrade to Plaid's free Development tier (up to 100 items):
+
+1. **Get access to Development.** Complete the company-info form in the Plaid dashboard — it takes a couple of days for Plaid to review. No cost.
+2. **Grab the Development secret** from the dashboard (it's a different secret from Sandbox).
+3. **Generate an encryption key** (required for Development + Production — access tokens grant ongoing bank-data access and are not stored plaintext outside sandbox):
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+   ```
+4. **In Render**, update the env:
+   ```
+   PLAID_ENV=development
+   PLAID_SECRET=<your development secret>
+   PLAID_ENCRYPTION_KEY=<the base64 key from step 3>
+   ```
+   The backend will refuse to boot in `development`/`production` without `PLAID_ENCRYPTION_KEY`.
+5. **In Vercel**, set `VITE_PLAID_ENV=development` so the UI badge reflects the environment.
+6. **Redeploy**. Existing sandbox items in the DB will keep working (repo reads legacy plaintext); new items get encrypted at rest. To rotate the key later, a one-off migration script (not shipped) would re-encrypt existing rows.
 
 ## Architecture
 

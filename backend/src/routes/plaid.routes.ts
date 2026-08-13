@@ -17,5 +17,6 @@ export function createPlaidRouter(
   router.post('/exchange', send(controller.exchange));
   router.get('/items', send(controller.listItems));
   router.post('/items/:id/sync', send(controller.syncItem));
+  router.delete('/items/:id', send(controller.removeItem));
   return router;
 }
