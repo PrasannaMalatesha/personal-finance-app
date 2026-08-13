@@ -58,6 +58,45 @@ describe('Accounts (integration)', () => {
       });
     });
 
+    it('defaults currency to the user base_currency when omitted', async () => {
+      const res = await request(app)
+        .post('/api/v1/accounts')
+        .set('Cookie', accessCookie)
+        .set('Idempotency-Key', randomUUID())
+        .send({ name: 'Checking', type: 'checking', openingBalance: '0' });
+      expect(res.status).toBe(201);
+      expect(res.body.data.currency).toBe('USD');
+    });
+
+    it('accepts an explicit currency', async () => {
+      const res = await request(app)
+        .post('/api/v1/accounts')
+        .set('Cookie', accessCookie)
+        .set('Idempotency-Key', randomUUID())
+        .send({
+          name: 'Euro Savings',
+          type: 'savings',
+          openingBalance: '0',
+          currency: 'EUR',
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.data.currency).toBe('EUR');
+    });
+
+    it('rejects a currency outside the whitelist', async () => {
+      const res = await request(app)
+        .post('/api/v1/accounts')
+        .set('Cookie', accessCookie)
+        .set('Idempotency-Key', randomUUID())
+        .send({
+          name: 'Bad',
+          type: 'checking',
+          openingBalance: '0',
+          currency: 'XYZ',
+        });
+      expect(res.status).toBe(400);
+    });
+
     it('returns 400 when Idempotency-Key is missing', async () => {
       const res = await request(app)
         .post('/api/v1/accounts')

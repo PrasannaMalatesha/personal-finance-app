@@ -24,6 +24,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { EmptyState } from '../../shared/components/EmptyState';
 import { MoneyCell } from '../../shared/components/MoneyCell';
 import { useAuth } from '../auth/useAuth';
+import { flags } from '../../flags';
 import { useAccounts, useDeleteAccount } from './useAccounts';
 import { ACCOUNT_TYPE_LABELS, type AccountPublic } from './schemas';
 import { AccountFormDialog } from './AccountFormDialog';
@@ -73,7 +74,7 @@ function AccountRowActions({
 
 export function AccountsPage() {
   const { user } = useAuth();
-  const currency = user?.baseCurrency ?? 'USD';
+  const baseCurrency = user?.baseCurrency ?? 'USD';
   const accounts = useAccounts();
   const del = useDeleteAccount();
 
@@ -143,9 +144,20 @@ export function AccountsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {accounts.data.map((a) => (
+              {accounts.data.map((a) => {
+                const acctCurrency = flags.multiCurrency
+                  ? (a.currency ?? baseCurrency)
+                  : baseCurrency;
+                return (
                 <TableRow key={a.id} hover>
-                  <TableCell sx={{ fontWeight: 500 }}>{a.name}</TableCell>
+                  <TableCell sx={{ fontWeight: 500 }}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <span>{a.name}</span>
+                      {flags.multiCurrency && (
+                        <Chip label={acctCurrency} size="small" />
+                      )}
+                    </Stack>
+                  </TableCell>
                   <TableCell>
                     <Chip
                       label={ACCOUNT_TYPE_LABELS[a.type]}
@@ -154,10 +166,10 @@ export function AccountsPage() {
                     />
                   </TableCell>
                   <TableCell align="right">
-                    <MoneyCell amount={a.openingBalance} currency={currency} />
+                    <MoneyCell amount={a.openingBalance} currency={acctCurrency} />
                   </TableCell>
                   <TableCell align="right">
-                    <MoneyCell amount={a.currentBalance} currency={currency} />
+                    <MoneyCell amount={a.currentBalance} currency={acctCurrency} />
                   </TableCell>
                   <TableCell align="right" sx={{ width: 40 }}>
                     <AccountRowActions
@@ -167,7 +179,8 @@ export function AccountsPage() {
                     />
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>

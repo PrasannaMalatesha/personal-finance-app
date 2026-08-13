@@ -1,3 +1,4 @@
+import Decimal from 'decimal.js';
 import type { Pool } from 'pg';
 import type { Executor } from '../lib/tx';
 
@@ -28,29 +29,78 @@ export interface NetWorthRow {
   net_worth: string;
 }
 
+export interface SummaryByCurrencyRow {
+  currency: string;
+  income: string;
+  expenses: string;
+}
+
+export interface CategorySliceByCurrencyRow {
+  category_id: string | null;
+  category_name: string;
+  color: string;
+  currency: string;
+  amount: string;
+}
+
+export interface TrendByCurrencyRow {
+  month: string;
+  currency: string;
+  income: string;
+  expenses: string;
+}
+
+export interface NetWorthByCurrencyRow {
+  month: string;
+  currency: string;
+  net_worth: string;
+}
+
 export interface DashboardRepo {
   summaryForMonth(
     userId: string,
     month: string,
     executor?: Executor,
   ): Promise<SummaryRow>;
+  summaryForMonthByCurrency(
+    userId: string,
+    month: string,
+    executor?: Executor,
+  ): Promise<SummaryByCurrencyRow[]>;
   spendByCategoryForMonth(
     userId: string,
     month: string,
     executor?: Executor,
   ): Promise<CategorySliceRow[]>;
+  spendByCategoryForMonthByCurrency(
+    userId: string,
+    month: string,
+    executor?: Executor,
+  ): Promise<CategorySliceByCurrencyRow[]>;
   trend(
     userId: string,
     endMonth: string,
     months: number,
     executor?: Executor,
   ): Promise<TrendRow[]>;
+  trendByCurrency(
+    userId: string,
+    endMonth: string,
+    months: number,
+    executor?: Executor,
+  ): Promise<TrendByCurrencyRow[]>;
   netWorth(
     userId: string,
     endMonth: string,
     months: number,
     executor?: Executor,
   ): Promise<NetWorthRow[]>;
+  netWorthByCurrency(
+    userId: string,
+    endMonth: string,
+    months: number,
+    executor?: Executor,
+  ): Promise<NetWorthByCurrencyRow[]>;
 }
 
 export function createDashboardRepo(pool: Pool): DashboardRepo {
@@ -176,6 +226,119 @@ export function createDashboardRepo(pool: Pool): DashboardRepo {
      * per generated month — O(N + T) per row, O(months × T) total. Fine at
      * the sizes v1 targets (~5k tx demo dataset in <500ms).
      */
+    async summaryForMonthByCurrency(userId, month, executor = pool) {
+      const { rows } = await executor.query<SummaryByCurrencyRow>(
+        `SELECT
+           a.currency,
+           SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END)::numeric(14,2)::text AS income,
+           SUM(CASE WHEN t.amount < 0 THEN -t.amount ELSE 0 END)::numeric(14,2)::text AS expenses
+         FROM transactions t
+         JOIN accounts a ON a.id = t.account_id
+         WHERE a.user_id = $1
+           AND t.date >= $2::date
+           AND t.date < ($2::date + INTERVAL '1 month')::date
+         GROUP BY a.currency`,
+        [userId, month],
+      );
+      return rows;
+    },
+
+    async spendByCategoryForMonthByCurrency(userId, month, executor = pool) {
+      const { rows } = await executor.query<CategorySliceByCurrencyRow>(
+        `SELECT
+           c.id AS category_id,
+           COALESCE(c.name, 'Uncategorized') AS category_name,
+           COALESCE(c.color, '#94a3b8') AS color,
+           a.currency,
+           SUM(-t.amount)::numeric(14,2)::text AS amount
+         FROM transactions t
+         JOIN accounts a ON a.id = t.account_id
+         LEFT JOIN categories c ON c.id = t.category_id
+         WHERE a.user_id = $1
+           AND t.amount < 0
+           AND t.date >= $2::date
+           AND t.date < ($2::date + INTERVAL '1 month')::date
+         GROUP BY c.id, c.name, c.color, a.currency
+         HAVING SUM(-t.amount) > 0`,
+        [userId, month],
+      );
+      return rows;
+    },
+
+    async trendByCurrency(userId, endMonth, months, executor = pool) {
+      const { rows } = await executor.query<TrendByCurrencyRow>(
+        `WITH months AS (
+           SELECT generate_series(
+             ($1::date - ($2::int - 1) * INTERVAL '1 month')::date,
+             $1::date,
+             INTERVAL '1 month'
+           )::date AS month
+         )
+         SELECT
+           to_char(m.month, 'YYYY-MM') AS month,
+           a.currency,
+           COALESCE(SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END), 0)::numeric(14,2)::text AS income,
+           COALESCE(SUM(CASE WHEN t.amount < 0 THEN -t.amount ELSE 0 END), 0)::numeric(14,2)::text AS expenses
+         FROM months m
+         JOIN accounts a ON a.user_id = $3
+         LEFT JOIN transactions t
+           ON t.account_id = a.id
+          AND t.date >= m.month
+          AND t.date < (m.month + INTERVAL '1 month')::date
+         GROUP BY m.month, a.currency
+         HAVING COALESCE(SUM(t.amount), 0) <> 0
+             OR COALESCE(SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END), 0) <> 0
+         ORDER BY m.month ASC`,
+        [endMonth, months, userId],
+      );
+      return rows;
+    },
+
+    async netWorthByCurrency(userId, endMonth, months, executor = pool) {
+      const { rows } = await executor.query<NetWorthByCurrencyRow>(
+        `WITH months AS (
+           SELECT generate_series(
+             ($1::date - ($2::int - 1) * INTERVAL '1 month')::date,
+             $1::date,
+             INTERVAL '1 month'
+           )::date AS month
+         )
+         SELECT
+           to_char(m.month, 'YYYY-MM') AS month,
+           a.currency,
+           (a_opening.opening + COALESCE(
+             (SELECT SUM(t.amount)
+              FROM transactions t
+              WHERE t.account_id = a.id
+                AND t.date < (m.month + INTERVAL '1 month')::date), 0
+           ))::numeric(14,2)::text AS net_worth
+         FROM months m
+         CROSS JOIN accounts a
+         JOIN LATERAL (SELECT a.opening_balance AS opening) a_opening ON TRUE
+         WHERE a.user_id = $3
+         ORDER BY m.month ASC, a.currency ASC`,
+        [endMonth, months, userId],
+      );
+      // Query returns one row per (month, account); collapse to (month, currency).
+      const merged = new Map<string, NetWorthByCurrencyRow>();
+      for (const r of rows) {
+        const key = `${r.month}|${r.currency}`;
+        const existing = merged.get(key);
+        if (existing) {
+          existing.net_worth = new Decimal(existing.net_worth)
+            .plus(r.net_worth)
+            .toFixed(2);
+        } else {
+          merged.set(key, { ...r });
+        }
+      }
+      return Array.from(merged.values()).sort((a, b) =>
+        a.month === b.month
+          ? a.currency.localeCompare(b.currency)
+          : a.month.localeCompare(b.month),
+      );
+    },
+
     async netWorth(userId, endMonth, months, executor = pool) {
       const { rows } = await executor.query<NetWorthRow>(
         `WITH months AS (

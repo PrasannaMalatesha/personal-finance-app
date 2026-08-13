@@ -13,6 +13,9 @@ import {
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ApiError } from '../../shared/api/client';
+import { flags } from '../../flags';
+import { useAuth } from '../auth/useAuth';
+import { BASE_CURRENCIES } from '../auth/schemas';
 import {
   ACCOUNT_TYPES,
   ACCOUNT_TYPE_LABELS,
@@ -37,6 +40,8 @@ export function AccountFormDialog({ open, onClose, editing }: Props) {
   const mode = editing ? 'edit' : 'create';
   const create = useCreateAccount();
   const update = useUpdateAccount();
+  const { user } = useAuth();
+  const baseCurrency = user?.baseCurrency ?? 'USD';
   const [error, setError] = useState<string | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState<string>('');
 
@@ -48,7 +53,12 @@ export function AccountFormDialog({ open, onClose, editing }: Props) {
     formState: { errors, isSubmitting },
   } = useForm<AccountFormInput>({
     resolver: zodResolver(AccountFormSchema),
-    defaultValues: { name: '', type: 'checking', openingBalance: '0' },
+    defaultValues: {
+      name: '',
+      type: 'checking',
+      openingBalance: '0',
+      currency: baseCurrency,
+    },
   });
 
   useEffect(() => {
@@ -59,16 +69,29 @@ export function AccountFormDialog({ open, onClose, editing }: Props) {
       name: editing?.name ?? '',
       type: editing?.type ?? 'checking',
       openingBalance: editing?.openingBalance ?? '0',
+      currency: editing?.currency ?? baseCurrency,
     });
-  }, [open, editing, reset]);
+  }, [open, editing, reset, baseCurrency]);
 
   const onSubmit = handleSubmit(async (input) => {
     setError(null);
+    // Backend rejects unknown fields on PATCH (no currency change allowed
+    // post-create); drop it for updates and when the flag is off.
+    const payload: AccountFormInput = flags.multiCurrency
+      ? input
+      : { ...input, currency: undefined };
     try {
       if (editing) {
-        await update.mutateAsync({ id: editing.id, patch: input });
+        // Backend rejects unknown fields on PATCH; strip currency (immutable
+        // post-create) before sending.
+        const patch: Omit<AccountFormInput, 'currency'> = {
+          name: payload.name,
+          type: payload.type,
+          openingBalance: payload.openingBalance,
+        };
+        await update.mutateAsync({ id: editing.id, patch });
       } else {
-        await create.mutateAsync({ input, idempotencyKey });
+        await create.mutateAsync({ input: payload, idempotencyKey });
       }
       onClose();
     } catch (err) {
@@ -128,6 +151,31 @@ export function AccountFormDialog({ open, onClose, editing }: Props) {
                 'Starting balance for this account. Can be edited later.'
               }
             />
+            {flags.multiCurrency && !editing && (
+              <Controller
+                control={control}
+                name="currency"
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    select
+                    label="Currency"
+                    fullWidth
+                    error={Boolean(errors.currency)}
+                    helperText={
+                      errors.currency?.message ??
+                      "Locked once the account is created — sets this account's native currency."
+                    }
+                  >
+                    {BASE_CURRENCIES.map((c) => (
+                      <MenuItem key={c} value={c}>
+                        {c}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+            )}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

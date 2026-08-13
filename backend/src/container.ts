@@ -12,6 +12,9 @@ import { createBudgetsRepo } from './repositories/budgets.repo';
 import { createDashboardRepo } from './repositories/dashboard.repo';
 import { createRecurringRepo } from './repositories/recurring.repo';
 import { createPasswordResetTokensRepo } from './repositories/passwordResetTokens.repo';
+import { createFxRatesRepo } from './repositories/fxRates.repo';
+import { createFrankfurterAdapter } from './lib/fxAdapter';
+import { createFxService } from './services/fx.service';
 import { createAuthService, type AuthService } from './services/auth.service';
 import { createPasswordResetService } from './services/passwordReset.service';
 import { createCategoriesService } from './services/categories.service';
@@ -110,9 +113,12 @@ export function buildContainer(
   const dashboardRepo = createDashboardRepo(pool);
   const recurringRepo = createRecurringRepo(pool);
   const passwordResetTokensRepo = createPasswordResetTokensRepo(pool);
+  const fxRatesRepo = createFxRatesRepo(pool);
+  const fxAdapter = createFrankfurterAdapter({ logger });
+  const fxService = createFxService({ fxAdapter, fxRatesRepo, logger });
 
   const categoriesService = createCategoriesService({ categoriesRepo });
-  const accountsService = createAccountsService({ accountsRepo });
+  const accountsService = createAccountsService({ accountsRepo, usersRepo });
   const categorizationService = createCategorizationService({ rulesRepo });
   const transactionsService = createTransactionsService({
     transactionsRepo,
@@ -124,7 +130,12 @@ export function buildContainer(
   // signed value that can't be mistaken for or used as an access token.
   const previewTokenSigner = createPreviewTokenSigner(config.jwtAccessSecret);
   const budgetsService = createBudgetsService({ budgetsRepo, categoriesRepo });
-  const dashboardService = createDashboardService({ dashboardRepo, categoriesRepo });
+  const dashboardService = createDashboardService({
+    dashboardRepo,
+    categoriesRepo,
+    usersRepo,
+    fxService,
+  });
   const rulesService = createRulesService({ rulesRepo, categoriesRepo });
   const recurringService = createRecurringService({ pool, recurringRepo });
   const emailAdapter = pickEmailAdapter(config, logger);
