@@ -28,6 +28,7 @@ import { flags } from '../../flags';
 import { useAccounts, useDeleteAccount } from './useAccounts';
 import { ACCOUNT_TYPE_LABELS, type AccountPublic } from './schemas';
 import { AccountFormDialog } from './AccountFormDialog';
+import { ConnectedBanksSection } from '../plaid/ConnectedBanksSection';
 
 function AccountRowActions({
   account,
@@ -185,6 +186,8 @@ export function AccountsPage() {
           </Table>
         </TableContainer>
       )}
+
+      {flags.plaid && <ConnectedBanksSection />}
 
       <AccountFormDialog
         open={dialogOpen}

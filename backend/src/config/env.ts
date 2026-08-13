@@ -28,6 +28,12 @@ const envSchema = z
     // absent, the console adapter logs the reset URL to stdout instead.
     RESEND_API_KEY: z.string().optional(),
     RESEND_FROM_EMAIL: z.string().optional(),
+    // Plaid — sandbox tier for the demo. Both keys required together to
+    // enable the /plaid/* routes; when either is missing, the service throws
+    // a clear "not configured" error and the frontend hides the Connect UI.
+    PLAID_CLIENT_ID: z.string().optional(),
+    PLAID_SECRET: z.string().optional(),
+    PLAID_ENV: z.enum(['sandbox', 'development', 'production']).default('sandbox'),
   })
   .refine((data) => data.JWT_ACCESS_SECRET !== data.JWT_REFRESH_SECRET, {
     message: 'JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must differ',

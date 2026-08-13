@@ -15,6 +15,13 @@ import { createPasswordResetTokensRepo } from './repositories/passwordResetToken
 import { createFxRatesRepo } from './repositories/fxRates.repo';
 import { createFrankfurterAdapter } from './lib/fxAdapter';
 import { createFxService } from './services/fx.service';
+import { createPlaidItemsRepo } from './repositories/plaidItems.repo';
+import { createPlaidAdapter } from './lib/plaidAdapter';
+import { createPlaidService, type PlaidService } from './services/plaid.service';
+import {
+  createPlaidController,
+  type PlaidController,
+} from './controllers/plaid.controller';
 import { createAuthService, type AuthService } from './services/auth.service';
 import { createPasswordResetService } from './services/passwordReset.service';
 import { createCategoriesService } from './services/categories.service';
@@ -59,6 +66,7 @@ export interface Container {
   rulesController: RulesController;
   recurringController: RecurringController;
   passwordResetController: PasswordResetController;
+  plaidController: PlaidController | null;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
   idempotent: IdempotencyWrapper;
 }
@@ -71,6 +79,12 @@ export interface ContainerConfig {
   /** Both must be present to enable Resend; otherwise the console adapter runs. */
   resendApiKey?: string;
   resendFromEmail?: string;
+  /** Both client_id + secret must be present to enable Plaid; otherwise plaidController stays null. */
+  plaidClientId?: string;
+  plaidSecret?: string;
+  plaidEnv?: 'sandbox' | 'development' | 'production';
+  /** Shown as the connecting-app name inside Plaid Link. */
+  plaidClientName?: string;
 }
 
 function pickEmailAdapter(config: ContainerConfig, logger: Logger) {
@@ -116,10 +130,39 @@ export function buildContainer(
   const fxRatesRepo = createFxRatesRepo(pool);
   const fxAdapter = createFrankfurterAdapter({ logger });
   const fxService = createFxService({ fxAdapter, fxRatesRepo, logger });
+  const plaidItemsRepo = createPlaidItemsRepo(pool);
 
   const categoriesService = createCategoriesService({ categoriesRepo });
   const accountsService = createAccountsService({ accountsRepo, usersRepo });
   const categorizationService = createCategorizationService({ rulesRepo });
+
+  let plaidService: PlaidService | null = null;
+  let plaidController: PlaidController | null = null;
+  if (config.plaidClientId && config.plaidSecret) {
+    const plaidAdapter = createPlaidAdapter({
+      clientId: config.plaidClientId,
+      secret: config.plaidSecret,
+      env: config.plaidEnv ?? 'sandbox',
+    });
+    plaidService = createPlaidService({
+      pool,
+      plaidAdapter,
+      plaidItemsRepo,
+      accountsRepo,
+      usersRepo,
+      categorization: categorizationService,
+      logger,
+      clientName: config.plaidClientName ?? 'Personal Finance',
+    });
+    plaidController = createPlaidController(plaidService);
+    logger.info(
+      { env: config.plaidEnv ?? 'sandbox' },
+      'Plaid: enabled (client_id + secret present)',
+    );
+  } else {
+    logger.info('Plaid: disabled (set PLAID_CLIENT_ID + PLAID_SECRET to enable)');
+  }
+
   const transactionsService = createTransactionsService({
     transactionsRepo,
     accountsRepo,
@@ -201,6 +244,7 @@ export function buildContainer(
     rulesController,
     recurringController,
     passwordResetController,
+    plaidController,
     authMiddleware,
     idempotent,
   };

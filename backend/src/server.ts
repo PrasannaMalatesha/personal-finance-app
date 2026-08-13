@@ -13,6 +13,9 @@ const container = buildContainer(pool, logger, {
   frontendOrigin: env.FRONTEND_ORIGIN,
   resendApiKey: env.RESEND_API_KEY,
   resendFromEmail: env.RESEND_FROM_EMAIL,
+  plaidClientId: env.PLAID_CLIENT_ID,
+  plaidSecret: env.PLAID_SECRET,
+  plaidEnv: env.PLAID_ENV,
 });
 
 const app = createApp(container);
