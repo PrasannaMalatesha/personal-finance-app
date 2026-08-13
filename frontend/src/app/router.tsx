@@ -15,6 +15,7 @@ import { BudgetsPage } from '../features/budgets/BudgetsPage';
 import { RulesPage } from '../features/rules/RulesPage';
 import { SubscriptionsPage } from '../features/recurring/SubscriptionsPage';
 import { CategoriesPage } from '../features/categories/CategoriesPage';
+import { SettingsPage } from '../features/settings/SettingsPage';
 import { flags } from '../flags';
 import { ProtectedRoute, PublicOnlyRoute } from './ProtectedRoute';
 
@@ -80,6 +81,7 @@ const router = createBrowserRouter([
           ...(flags.hierarchicalCategories
             ? [{ path: 'categories', element: <CategoriesPage /> }]
             : []),
+          { path: 'settings', element: <SettingsPage /> },
           { path: 'health', element: <HealthPage /> },
         ],
       },

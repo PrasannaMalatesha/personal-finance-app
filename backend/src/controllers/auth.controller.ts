@@ -1,5 +1,11 @@
 import type { CookieOptions, NextFunction, Request, Response } from 'express';
-import { SignupInput, LoginInput } from '../schemas/auth';
+import {
+  SignupInput,
+  LoginInput,
+  UpdateProfileInput,
+  ChangePasswordInput,
+  DeleteAccountInput,
+} from '../schemas/auth';
 import type { AuthService } from '../services/auth.service';
 import { ACCESS_TTL_SEC, REFRESH_TTL_SEC } from '../lib/tokens';
 import { env } from '../config/env';
@@ -41,6 +47,10 @@ export interface AuthController {
   refresh(req: Request, res: Response, next: NextFunction): Promise<void>;
   logout(req: Request, res: Response, next: NextFunction): Promise<void>;
   me(req: Request, res: Response, next: NextFunction): Promise<void>;
+  updateProfile(req: Request, res: Response, next: NextFunction): Promise<void>;
+  changePassword(req: Request, res: Response, next: NextFunction): Promise<void>;
+  unlinkGoogle(req: Request, res: Response, next: NextFunction): Promise<void>;
+  deleteAccount(req: Request, res: Response, next: NextFunction): Promise<void>;
 }
 
 export function createAuthController(authService: AuthService): AuthController {
@@ -100,6 +110,53 @@ export function createAuthController(authService: AuthService): AuthController {
         const userId = (req as AuthenticatedRequest).user.id;
         const user = await authService.me(userId);
         res.status(200).json({ data: user });
+      } catch (err) {
+        next(err);
+      }
+    },
+
+    async updateProfile(req, res, next) {
+      try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const input = UpdateProfileInput.parse(req.body);
+        const user = await authService.updateProfile(userId, input);
+        res.status(200).json({ data: user });
+      } catch (err) {
+        next(err);
+      }
+    },
+
+    async changePassword(req, res, next) {
+      try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const input = ChangePasswordInput.parse(req.body);
+        await authService.changePassword(userId, input);
+        // Refresh sessions were revoked — clear cookies so the next request
+        // forces a fresh login with the new password.
+        clearAuthCookies(res);
+        res.status(204).send();
+      } catch (err) {
+        next(err);
+      }
+    },
+
+    async unlinkGoogle(req, res, next) {
+      try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        await authService.unlinkGoogle(userId);
+        res.status(204).send();
+      } catch (err) {
+        next(err);
+      }
+    },
+
+    async deleteAccount(req, res, next) {
+      try {
+        const userId = (req as AuthenticatedRequest).user.id;
+        const input = DeleteAccountInput.parse(req.body);
+        await authService.deleteAccount(userId, input);
+        clearAuthCookies(res);
+        res.status(204).send();
       } catch (err) {
         next(err);
       }

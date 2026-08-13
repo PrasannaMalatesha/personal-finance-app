@@ -14,6 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/LogoutOutlined';
+import SettingsIcon from '@mui/icons-material/SettingsOutlined';
 import { Link as RouterLink, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { brand } from '../../app/theme';
 import { flags } from '../../flags';
@@ -133,6 +134,10 @@ function UserMenu({ email }: { email: string }) {
           </Typography>
         </Box>
         <Divider />
+        <MenuItem component={RouterLink} to="/settings" onClick={close}>
+          <SettingsIcon fontSize="small" sx={{ mr: 1.5, color: 'text.secondary' }} />
+          Settings
+        </MenuItem>
         <MenuItem onClick={onLogout} disabled={logout.isPending}>
           <LogoutIcon fontSize="small" sx={{ mr: 1.5, color: 'text.secondary' }} />
           {logout.isPending ? 'Logging out…' : 'Log out'}

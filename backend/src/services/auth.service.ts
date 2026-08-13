@@ -7,12 +7,18 @@ import type { PasswordHasher } from '../lib/password';
 import { withTransaction } from '../lib/tx';
 import type { UsersRepo, UserRow } from '../repositories/users.repo';
 import type { RefreshTokensRepo } from '../repositories/refreshTokens.repo';
-import type { UserPublic } from '../schemas/auth';
+import type {
+  UserPublic,
+  UpdateProfileInput,
+  ChangePasswordInput,
+  DeleteAccountInput,
+} from '../schemas/auth';
 import { CURRENCY_CODES } from '../schemas/auth';
 import {
   ConflictError,
   UnauthenticatedError,
   NotFoundError,
+  ValidationError,
 } from '../errors/AppError';
 
 export interface AuthServiceDeps {
@@ -43,6 +49,8 @@ function toUserPublic(row: UserRow): UserPublic {
     email: row.email,
     baseCurrency: currency as UserPublic['baseCurrency'],
     createdAt: row.created_at.toISOString(),
+    hasPassword: row.password_hash !== null,
+    hasGoogle: row.google_sub !== null,
   };
 }
 
@@ -225,7 +233,104 @@ export function createAuthService(deps: AuthServiceDeps) {
     return toUserPublic(user);
   }
 
-  return { signup, login, refresh, logout, me };
+  async function updateProfile(
+    userId: string,
+    input: UpdateProfileInput,
+  ): Promise<UserPublic> {
+    if (input.baseCurrency !== undefined) {
+      await usersRepo.updateBaseCurrency(userId, input.baseCurrency);
+    }
+    const fresh = await usersRepo.findById(userId);
+    if (!fresh) throw new NotFoundError('User');
+    return toUserPublic(fresh);
+  }
+
+  /**
+   * Two paths, disambiguated by the account's current password_hash:
+   *   - Password user: currentPassword is required and must verify.
+   *   - OAuth-only user: currentPassword must be omitted; a fresh password
+   *     is set (they'll be able to log in with email + password afterward).
+   * Revokes every existing refresh session on success so an attacker who
+   * grabbed a session can't outlast the change.
+   */
+  async function changePassword(
+    userId: string,
+    input: ChangePasswordInput,
+  ): Promise<void> {
+    const user = await usersRepo.findById(userId);
+    if (!user) throw new UnauthenticatedError();
+
+    if (user.password_hash) {
+      if (!input.currentPassword) {
+        throw new ValidationError('currentPassword is required');
+      }
+      const ok = await passwordHasher.verify(input.currentPassword, user.password_hash);
+      if (!ok) throw new UnauthenticatedError('Current password is incorrect');
+    } else {
+      // OAuth-only user setting a password for the first time.
+      if (input.currentPassword) {
+        throw new ValidationError(
+          'currentPassword must be omitted when adding a password to an OAuth-only account',
+        );
+      }
+    }
+
+    const newHash = await passwordHasher.hash(input.newPassword);
+    await withTransaction(pool, async (client) => {
+      await usersRepo.updatePasswordHash(userId, newHash, client);
+      await refreshTokensRepo.revokeAllForUser(userId, clock.now(), client);
+    });
+  }
+
+  /**
+   * Unlink the Google identity. Refuses when the user has no password —
+   * that would leave them unable to sign in.
+   */
+  async function unlinkGoogle(userId: string): Promise<void> {
+    const user = await usersRepo.findById(userId);
+    if (!user) throw new UnauthenticatedError();
+    if (!user.password_hash) {
+      throw new ValidationError(
+        'Set a password before unlinking Google, otherwise you would lose access to the account',
+      );
+    }
+    if (!user.google_sub) {
+      // Idempotent — treat as no-op rather than error.
+      return;
+    }
+    await usersRepo.clearGoogleSub(userId);
+  }
+
+  /**
+   * Delete the account. Client sends the current email as a confirmation —
+   * catches obvious "clicked wrong button" mistakes. FK ON DELETE CASCADE
+   * on every downstream table wipes accounts, transactions, categories,
+   * rules, budgets, plaid_items, refresh_tokens, etc.
+   */
+  async function deleteAccount(
+    userId: string,
+    input: DeleteAccountInput,
+  ): Promise<void> {
+    const user = await usersRepo.findById(userId);
+    if (!user) throw new UnauthenticatedError();
+    if (user.email.toLowerCase() !== input.confirmEmail.toLowerCase()) {
+      throw new ValidationError('Confirmation email does not match');
+    }
+    const deleted = await usersRepo.deleteById(userId);
+    if (!deleted) throw new NotFoundError('User');
+  }
+
+  return {
+    signup,
+    login,
+    refresh,
+    logout,
+    me,
+    updateProfile,
+    changePassword,
+    unlinkGoogle,
+    deleteAccount,
+  };
 }
 
 export type AuthService = ReturnType<typeof createAuthService>;
