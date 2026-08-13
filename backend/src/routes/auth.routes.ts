@@ -12,5 +12,9 @@ export function createAuthRouter(
   router.post('/refresh', controller.refresh);
   router.post('/logout', controller.logout);
   router.get('/me', authMiddleware, controller.me);
+  router.patch('/me', authMiddleware, controller.updateProfile);
+  router.post('/change-password', authMiddleware, controller.changePassword);
+  router.delete('/oauth/google/link', authMiddleware, controller.unlinkGoogle);
+  router.delete('/me', authMiddleware, controller.deleteAccount);
   return router;
 }

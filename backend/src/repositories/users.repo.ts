@@ -35,6 +35,14 @@ export interface UsersRepo {
     googleSub: string,
     executor?: Executor,
   ): Promise<void>;
+  updateBaseCurrency(
+    userId: string,
+    baseCurrency: string,
+    executor?: Executor,
+  ): Promise<void>;
+  clearGoogleSub(userId: string, executor?: Executor): Promise<void>;
+  /** Cascades via FK ON DELETE — nukes every downstream row. */
+  deleteById(userId: string, executor?: Executor): Promise<boolean>;
 }
 
 export function createUsersRepo(pool: Pool): UsersRepo {
@@ -93,6 +101,25 @@ export function createUsersRepo(pool: Pool): UsersRepo {
         `UPDATE users SET google_sub = $1, updated_at = NOW() WHERE id = $2`,
         [googleSub, userId],
       );
+    },
+    async updateBaseCurrency(userId, baseCurrency, executor = pool) {
+      await executor.query(
+        `UPDATE users SET base_currency = $1, updated_at = NOW() WHERE id = $2`,
+        [baseCurrency, userId],
+      );
+    },
+    async clearGoogleSub(userId, executor = pool) {
+      await executor.query(
+        `UPDATE users SET google_sub = NULL, updated_at = NOW() WHERE id = $1`,
+        [userId],
+      );
+    },
+    async deleteById(userId, executor = pool) {
+      const { rowCount } = await executor.query(
+        `DELETE FROM users WHERE id = $1`,
+        [userId],
+      );
+      return (rowCount ?? 0) > 0;
     },
   };
 }

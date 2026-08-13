@@ -34,6 +34,8 @@ export interface AuthUser {
   id: string;
   email: string;
   baseCurrency: BaseCurrency;
+  hasPassword?: boolean;
+  hasGoogle?: boolean;
 }
 
 export const RequestResetSchema = z.object({
