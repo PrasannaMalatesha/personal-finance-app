@@ -179,7 +179,12 @@ export function buildContainer(
     usersRepo,
     fxService,
   });
-  const rulesService = createRulesService({ rulesRepo, categoriesRepo });
+  const rulesService = createRulesService({
+    pool,
+    rulesRepo,
+    categoriesRepo,
+    transactionsRepo,
+  });
   const recurringService = createRecurringService({ pool, recurringRepo });
   const emailAdapter = pickEmailAdapter(config, logger);
   const passwordResetService = createPasswordResetService({
@@ -222,7 +227,10 @@ export function buildContainer(
   const authController = createAuthController(authService);
   const categoriesController = createCategoriesController(categoriesService);
   const accountsController = createAccountsController(accountsService);
-  const transactionsController = createTransactionsController(transactionsService);
+  const transactionsController = createTransactionsController(
+    transactionsService,
+    rulesService,
+  );
   const importsController = createImportsController(csvImportService);
   const budgetsController = createBudgetsController(budgetsService);
   const dashboardController = createDashboardController(dashboardService);

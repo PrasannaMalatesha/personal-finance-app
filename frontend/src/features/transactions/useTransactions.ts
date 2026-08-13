@@ -57,6 +57,26 @@ export function useUpdateTransaction() {
   });
 }
 
+export interface LearnRuleInput {
+  pattern: string;
+  categoryId: string;
+  applyToExisting: boolean;
+}
+
+export function useLearnRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: LearnRuleInput) => api.learnRule(input),
+    onSuccess: () => {
+      // New rule may recategorize future imports + we've just back-applied
+      // to existing rows, so both caches are stale.
+      qc.invalidateQueries({ queryKey: KEY_ROOT });
+      qc.invalidateQueries({ queryKey: ['rules'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
 export function useDeleteTransaction() {
   const qc = useQueryClient();
   return useMutation({

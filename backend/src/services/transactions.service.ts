@@ -139,16 +139,20 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
     userId: string,
     id: string,
     patch: UpdateTransactionInput,
-  ): Promise<TransactionPublic> {
+  ): Promise<{ transaction: TransactionPublic; previousCategoryId: string | null }> {
     if (patch.accountId !== undefined) {
       await assertAccountOwned(userId, patch.accountId);
     }
     if (patch.categoryId !== undefined && patch.categoryId !== null) {
       await assertCategoryOwned(userId, patch.categoryId);
     }
+    // Peek before the update so the controller can tell whether the user
+    // just made a categorization decision worth learning from.
+    const existing = await transactionsRepo.findByIdForUser(id, userId);
+    if (!existing) throw new NotFoundError('Transaction');
     const row = await transactionsRepo.updateForUser(id, userId, patch);
     if (!row) throw new NotFoundError('Transaction');
-    return toPublic(row);
+    return { transaction: toPublic(row), previousCategoryId: existing.category_id };
   }
 
   async function remove(userId: string, id: string): Promise<void> {
