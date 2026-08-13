@@ -22,6 +22,12 @@ import {
   createPlaidController,
   type PlaidController,
 } from './controllers/plaid.controller';
+import { createGoogleOAuthAdapter } from './lib/googleOAuthAdapter';
+import { createOAuthService, type OAuthService } from './services/oauth.service';
+import {
+  createOAuthController,
+  type OAuthController,
+} from './controllers/oauth.controller';
 import { createAuthService, type AuthService } from './services/auth.service';
 import { createPasswordResetService } from './services/passwordReset.service';
 import { createCategoriesService } from './services/categories.service';
@@ -67,6 +73,7 @@ export interface Container {
   recurringController: RecurringController;
   passwordResetController: PasswordResetController;
   plaidController: PlaidController | null;
+  oauthController: OAuthController | null;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
   idempotent: IdempotencyWrapper;
 }
@@ -85,6 +92,11 @@ export interface ContainerConfig {
   plaidEnv?: 'sandbox' | 'development' | 'production';
   /** Shown as the connecting-app name inside Plaid Link. */
   plaidClientName?: string;
+  /** Google OAuth: both required together to enable sign-in-with-Google. */
+  googleClientId?: string;
+  googleClientSecret?: string;
+  /** Public origin of this backend, used to build the OAuth redirect URI. */
+  apiBaseUrl?: string;
 }
 
 function pickEmailAdapter(config: ContainerConfig, logger: Logger) {
@@ -237,6 +249,38 @@ export function buildContainer(
   const rulesController = createRulesController(rulesService);
   const recurringController = createRecurringController(recurringService);
   const passwordResetController = createPasswordResetController(passwordResetService);
+
+  let oauthService: OAuthService | null = null;
+  let oauthController: OAuthController | null = null;
+  if (config.googleClientId && config.googleClientSecret) {
+    const base = (config.apiBaseUrl ?? 'http://localhost:3001').replace(/\/$/, '');
+    const googleAdapter = createGoogleOAuthAdapter({
+      clientId: config.googleClientId,
+      clientSecret: config.googleClientSecret,
+      redirectUri: `${base}/api/v1/auth/oauth/google/callback`,
+    });
+    oauthService = createOAuthService({
+      pool,
+      googleAdapter,
+      usersRepo,
+      refreshTokensRepo,
+      categoriesService,
+      rulesService,
+      tokenSigner,
+      clock: systemClock,
+      logger,
+    });
+    oauthController = createOAuthController(oauthService);
+    logger.info(
+      { redirectUri: `${base}/api/v1/auth/oauth/google/callback` },
+      'Google OAuth: enabled',
+    );
+  } else {
+    logger.info(
+      'Google OAuth: disabled (set GOOGLE_OAUTH_CLIENT_ID + GOOGLE_OAUTH_CLIENT_SECRET to enable)',
+    );
+  }
+
   const authMiddleware = createAuthMiddleware(tokenSigner);
   const idempotent = createIdempotency(pool, idempotencyKeysRepo);
 
@@ -253,6 +297,7 @@ export function buildContainer(
     recurringController,
     passwordResetController,
     plaidController,
+    oauthController,
     authMiddleware,
     idempotent,
   };

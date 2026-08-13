@@ -134,6 +134,10 @@ export function createAuthService(deps: AuthServiceDeps) {
   }): Promise<AuthResult> {
     const user = await usersRepo.findByEmail(input.email);
     if (!user) throw new UnauthenticatedError('Invalid credentials');
+    // OAuth-only accounts have no password; reject cleanly without a
+    // separate error message (avoids revealing which sign-in method the
+    // account uses).
+    if (!user.password_hash) throw new UnauthenticatedError('Invalid credentials');
 
     const ok = await passwordHasher.verify(input.password, user.password_hash);
     if (!ok) throw new UnauthenticatedError('Invalid credentials');

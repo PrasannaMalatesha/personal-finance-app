@@ -25,6 +25,7 @@ const envSchema = z
     FLAG_HIERARCHICAL_CATEGORIES: booleanFromString,
     FLAG_PASSWORD_RESET: booleanFromString,
     FLAG_RULE_LEARNING: booleanFromString,
+    FLAG_OAUTH: booleanFromString,
     // Optional. When set, password reset emails are sent via Resend; when
     // absent, the console adapter logs the reset URL to stdout instead.
     RESEND_API_KEY: z.string().optional(),
@@ -35,6 +36,13 @@ const envSchema = z
     PLAID_CLIENT_ID: z.string().optional(),
     PLAID_SECRET: z.string().optional(),
     PLAID_ENV: z.enum(['sandbox', 'development', 'production']).default('sandbox'),
+    // Google OAuth — both required together to enable /auth/oauth/google/*.
+    // API_BASE_URL is the public origin of this backend, used to build the
+    // Google redirect URI (must exactly match what's registered in the
+    // Google console). Defaults to http://localhost:3001 in dev.
+    GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
+    GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
+    API_BASE_URL: z.string().url().default('http://localhost:3001'),
   })
   .refine((data) => data.JWT_ACCESS_SECRET !== data.JWT_REFRESH_SECRET, {
     message: 'JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must differ',

@@ -7,4 +7,5 @@ export const flags = {
     import.meta.env.VITE_FLAG_HIERARCHICAL_CATEGORIES === 'true',
   passwordReset: import.meta.env.VITE_FLAG_PASSWORD_RESET === 'true',
   ruleLearning: import.meta.env.VITE_FLAG_RULE_LEARNING === 'true',
+  oauth: import.meta.env.VITE_FLAG_OAUTH === 'true',
 } as const;

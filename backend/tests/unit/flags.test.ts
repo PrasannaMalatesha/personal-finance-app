@@ -22,6 +22,7 @@ describe('GET /api/v1/flags', () => {
       hierarchicalCategories: expect.any(Boolean),
       passwordReset: expect.any(Boolean),
       ruleLearning: expect.any(Boolean),
+      oauth: expect.any(Boolean),
     });
   });
 });
