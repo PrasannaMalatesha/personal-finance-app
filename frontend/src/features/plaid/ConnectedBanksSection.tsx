@@ -16,8 +16,9 @@ import {
   Typography,
 } from '@mui/material';
 import SyncIcon from '@mui/icons-material/Sync';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { ConnectBankButton } from './ConnectBankButton';
-import { usePlaidItems, useSyncItem } from './usePlaid';
+import { usePlaidItems, useRemoveItem, useSyncItem } from './usePlaid';
 
 function formatRelative(iso: string | null): string {
   if (!iso) return 'Never';
@@ -31,15 +32,39 @@ function formatRelative(iso: string | null): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+const plaidEnv = (import.meta.env.VITE_PLAID_ENV as string | undefined) ?? 'sandbox';
+const envBadgeColor: Record<string, 'default' | 'info' | 'warning'> = {
+  sandbox: 'default',
+  development: 'info',
+  production: 'warning',
+};
+
 export function ConnectedBanksSection() {
   const items = usePlaidItems();
   const sync = useSyncItem();
+  const remove = useRemoveItem();
+
+  const handleRemove = (id: string, name: string | null) => {
+    const label = name ?? 'this bank';
+    const ok = window.confirm(
+      `Disconnect ${label}? Your imported accounts and transactions will stay, but new transactions won't sync.`,
+    );
+    if (ok) remove.mutate(id);
+  };
 
   return (
     <Stack spacing={2}>
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <Stack spacing={0.5}>
-          <Typography variant="h6">Connected banks</Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="h6">Connected banks</Typography>
+            <Chip
+              label={plaidEnv}
+              size="small"
+              color={envBadgeColor[plaidEnv] ?? 'default'}
+              variant="outlined"
+            />
+          </Stack>
           <Typography variant="body2" color="text.secondary">
             Import accounts and transactions automatically via Plaid.
           </Typography>
@@ -79,21 +104,39 @@ export function ConnectedBanksSection() {
                   <TableCell>{formatRelative(it.createdAt)}</TableCell>
                   <TableCell>{formatRelative(it.lastSyncedAt)}</TableCell>
                   <TableCell align="right">
-                    <Tooltip title="Sync now">
-                      <span>
-                        <IconButton
-                          size="small"
-                          onClick={() => sync.mutate(it.id)}
-                          disabled={sync.isPending}
-                        >
-                          {sync.isPending && sync.variables === it.id ? (
-                            <CircularProgress size={16} />
-                          ) : (
-                            <SyncIcon fontSize="small" />
-                          )}
-                        </IconButton>
-                      </span>
-                    </Tooltip>
+                    <Stack direction="row" justifyContent="flex-end" spacing={0.5}>
+                      <Tooltip title="Sync now">
+                        <span>
+                          <IconButton
+                            size="small"
+                            onClick={() => sync.mutate(it.id)}
+                            disabled={sync.isPending}
+                          >
+                            {sync.isPending && sync.variables === it.id ? (
+                              <CircularProgress size={16} />
+                            ) : (
+                              <SyncIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      <Tooltip title="Disconnect">
+                        <span>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleRemove(it.id, it.institutionName)}
+                            disabled={remove.isPending}
+                          >
+                            {remove.isPending && remove.variables === it.id ? (
+                              <CircularProgress size={16} />
+                            ) : (
+                              <DeleteOutlineIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}

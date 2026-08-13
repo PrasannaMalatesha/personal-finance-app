@@ -16,6 +16,7 @@ const container = buildContainer(pool, logger, {
   plaidClientId: env.PLAID_CLIENT_ID,
   plaidSecret: env.PLAID_SECRET,
   plaidEnv: env.PLAID_ENV,
+  plaidEncryptionKey: env.PLAID_ENCRYPTION_KEY,
   googleClientId: env.GOOGLE_OAUTH_CLIENT_ID,
   googleClientSecret: env.GOOGLE_OAUTH_CLIENT_SECRET,
   apiBaseUrl: env.API_BASE_URL,

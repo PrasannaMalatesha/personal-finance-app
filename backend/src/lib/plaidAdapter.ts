@@ -61,6 +61,8 @@ export interface PlaidAdapter {
     nextCursor: string;
     hasMore: boolean;
   }>;
+  /** Revoke the access token at Plaid. Idempotent — safe to call twice. */
+  removeItem(accessToken: string): Promise<void>;
 }
 
 export interface PlaidAdapterConfig {
@@ -134,6 +136,13 @@ export function createPlaidAdapter(config: PlaidAdapterConfig): PlaidAdapter {
         nextCursor: res.data.next_cursor,
         hasMore: res.data.has_more,
       };
+    },
+
+    async removeItem(accessToken) {
+      // Plaid's itemRemove revokes the access token server-side. It's the
+      // right thing to do before deleting the row locally so the token
+      // can't be misused if it leaks out of a DB backup.
+      await client.itemRemove({ access_token: accessToken });
     },
   };
 }

@@ -233,7 +233,27 @@ export function createPlaidService(deps: PlaidServiceDeps) {
     return plaidItemsRepo.listByUser(userId);
   }
 
-  return { createLinkToken, exchangePublicToken, syncItem, listItems };
+  /**
+   * User-initiated disconnect. Best-effort revoke at Plaid first (so the
+   * token can't be misused after we drop our copy); failures there are
+   * logged but do not block the local delete — a lingering token whose row
+   * we've deleted is inert from our side anyway.
+   *
+   * The ON DELETE SET NULL on accounts.plaid_item_id keeps the imported
+   * accounts + their transactions intact; users can delete those separately.
+   */
+  async function removeItem(userId: string, itemDbId: string): Promise<void> {
+    const item = await plaidItemsRepo.findByIdForUser(itemDbId, userId);
+    if (!item) throw new NotFoundError('PlaidItem');
+    try {
+      await plaidAdapter.removeItem(item.access_token);
+    } catch (err) {
+      logger.warn({ err, itemDbId }, 'Plaid itemRemove failed; deleting local row anyway');
+    }
+    await plaidItemsRepo.deleteById(itemDbId, userId);
+  }
+
+  return { createLinkToken, exchangePublicToken, syncItem, listItems, removeItem };
 }
 
 export type PlaidService = ReturnType<typeof createPlaidService>;

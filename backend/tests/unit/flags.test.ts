@@ -23,6 +23,7 @@ describe('GET /api/v1/flags', () => {
       passwordReset: expect.any(Boolean),
       ruleLearning: expect.any(Boolean),
       oauth: expect.any(Boolean),
+      plaidEnv: expect.stringMatching(/^(sandbox|development|production)$/),
     });
   });
 });
