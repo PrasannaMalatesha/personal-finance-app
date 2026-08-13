@@ -15,6 +15,7 @@ const ACC = {
   id: 'acc1',
   name: 'Checking',
   type: 'checking' as const,
+  currency: 'USD' as const,
   openingBalance: '1000.00',
   currentBalance: '1000.00',
   createdAt: '2026-01-01T00:00:00Z',

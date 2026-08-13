@@ -13,6 +13,7 @@ const ACC = {
   id: '11111111-1111-1111-1111-111111111111',
   name: 'Chase Checking',
   type: 'checking' as const,
+  currency: 'USD' as const,
   openingBalance: '0.00',
   currentBalance: '0.00',
   createdAt: '2026-01-01T00:00:00Z',

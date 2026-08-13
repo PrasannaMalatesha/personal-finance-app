@@ -13,6 +13,7 @@ const ACC: AccountPublic = {
   id: '11111111-1111-1111-1111-111111111111',
   name: 'Checking',
   type: 'checking',
+  currency: 'USD',
   openingBalance: '1000.00',
   currentBalance: '1000.00',
   createdAt: '2026-01-01T00:00:00Z',

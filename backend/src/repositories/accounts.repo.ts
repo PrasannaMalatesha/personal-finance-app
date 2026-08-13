@@ -8,6 +8,7 @@ export interface AccountRow {
   user_id: string;
   name: string;
   type: AccountType;
+  currency: string;
   opening_balance: string; // pg returns NUMERIC as string
   created_at: Date;
   updated_at: Date;
@@ -29,6 +30,7 @@ export interface AccountsRepo {
       userId: string;
       name: string;
       type: AccountType;
+      currency: string;
       openingBalance: string;
     },
     executor?: Executor,
@@ -74,12 +76,12 @@ export function createAccountsRepo(pool: Pool): AccountsRepo {
       return rows[0] ?? null;
     },
 
-    async create({ userId, name, type, openingBalance }, executor = pool) {
+    async create({ userId, name, type, currency, openingBalance }, executor = pool) {
       const { rows } = await executor.query<AccountRow>(
-        `INSERT INTO accounts (user_id, name, type, opening_balance)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO accounts (user_id, name, type, currency, opening_balance)
+         VALUES ($1, $2, $3, $4, $5)
          RETURNING *`,
-        [userId, name, type, openingBalance],
+        [userId, name, type, currency, openingBalance],
       );
       const row = rows[0];
       if (!row) throw new Error('accounts.create: no row returned');

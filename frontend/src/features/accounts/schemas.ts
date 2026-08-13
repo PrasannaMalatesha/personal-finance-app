@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BASE_CURRENCIES, type BaseCurrency } from '../auth/schemas';
 
 export const ACCOUNT_TYPES = ['checking', 'savings', 'credit_card'] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
@@ -23,6 +24,9 @@ export const AccountFormSchema = z.object({
     errorMap: () => ({ message: 'Pick an account type' }),
   }),
   openingBalance: DecimalString,
+  // Optional in the form; when the multi-currency flag is off, callers omit
+  // it and the backend defaults to the user's base currency.
+  currency: z.enum(BASE_CURRENCIES).optional(),
 });
 export type AccountFormInput = z.infer<typeof AccountFormSchema>;
 
@@ -30,6 +34,7 @@ export interface AccountPublic {
   id: string;
   name: string;
   type: AccountType;
+  currency: BaseCurrency;
   openingBalance: string;
   currentBalance: string;
   createdAt: string;
