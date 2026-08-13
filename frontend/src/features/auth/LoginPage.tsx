@@ -19,6 +19,7 @@ import { ApiError } from '../../shared/api/client';
 import { flags } from '../../flags';
 import { LoginSchema, type LoginInput } from './schemas';
 import { useLogin } from './useAuth';
+import { GoogleSignInButton } from './GoogleSignInButton';
 
 interface LocationState {
   from?: string;
@@ -32,7 +33,15 @@ export function LoginPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   // Set by ResetPasswordPage after a successful reset — one-time success
   // banner so the user knows why they're back at the login screen.
-  const resetSuccess = new URLSearchParams(location.search).get('reset') === 'success';
+  const params = new URLSearchParams(location.search);
+  const resetSuccess = params.get('reset') === 'success';
+  const oauthErr = params.get('error');
+  const oauthErrorMessage =
+    oauthErr === 'oauth_cancelled'
+      ? 'Google sign-in was cancelled.'
+      : oauthErr === 'oauth_failed'
+        ? "Couldn't complete Google sign-in. Please try again."
+        : null;
 
   const {
     register,
@@ -82,6 +91,7 @@ export function LoginPage() {
             </Alert>
           )}
           {submitError && <Alert severity="error">{submitError}</Alert>}
+          {oauthErrorMessage && <Alert severity="warning">{oauthErrorMessage}</Alert>}
 
           <TextField
             {...register('email')}
@@ -137,6 +147,8 @@ export function LoginPage() {
               </Link>
             </Box>
           )}
+
+          {flags.oauth && <GoogleSignInButton label="Continue with Google" />}
         </Stack>
       </Box>
     </AuthShell>

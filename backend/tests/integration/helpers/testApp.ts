@@ -10,6 +10,9 @@ export function buildTestApp(pool: Pool): Express {
     jwtAccessSecret: process.env.JWT_ACCESS_SECRET!,
     jwtRefreshSecret: process.env.JWT_REFRESH_SECRET!,
     frontendOrigin: process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173',
+    googleClientId: process.env.GOOGLE_OAUTH_CLIENT_ID,
+    googleClientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+    apiBaseUrl: process.env.API_BASE_URL,
   });
   return createApp(container);
 }

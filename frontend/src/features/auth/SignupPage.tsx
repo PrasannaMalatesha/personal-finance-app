@@ -19,6 +19,8 @@ import { AuthShell } from '../../shared/components/AuthShell';
 import { ApiError } from '../../shared/api/client';
 import { BASE_CURRENCIES, SignupSchema, type SignupInput } from './schemas';
 import { useSignup } from './useAuth';
+import { GoogleSignInButton } from './GoogleSignInButton';
+import { flags } from '../../flags';
 
 export function SignupPage() {
   const navigate = useNavigate();
@@ -137,6 +139,8 @@ export function SignupPage() {
           >
             {isSubmitting ? 'Creating account…' : 'Create account'}
           </Button>
+
+          {flags.oauth && <GoogleSignInButton label="Sign up with Google" />}
         </Stack>
       </Box>
     </AuthShell>

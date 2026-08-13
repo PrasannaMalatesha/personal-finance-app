@@ -58,6 +58,11 @@ jobs:
       # v3 rule-learning: POST /rules/learned is conditionally mounted +
       # PATCH /transactions returns suggestedRule only when this is on.
       FLAG_RULE_LEARNING: 'true'
+      # v3 OAuth: /auth/oauth/google/* routes are doubly gated (flag +
+      # google-auth-library service). Flag on so any oauth integration
+      # tests can reach the routes; env keys stay unset so the service
+      # takes the disabled path unless a test sets them.
+      FLAG_OAUTH: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

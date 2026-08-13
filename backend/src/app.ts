@@ -19,6 +19,7 @@ import { createRulesRouter } from './routes/rules.routes';
 import { createRecurringRouter } from './routes/recurring.routes';
 import { createPasswordResetRouter } from './routes/passwordReset.routes';
 import { createPlaidRouter } from './routes/plaid.routes';
+import { createOAuthRouter } from './routes/oauth.routes';
 import { flags } from './flags';
 import type { Container } from './container';
 
@@ -117,6 +118,11 @@ export function createApp(container: Container): Express {
       '/api/v1/plaid',
       createPlaidRouter(container.plaidController, container.authMiddleware),
     );
+  }
+  // Google OAuth: same doubly-gated pattern — flag + env-derived controller
+  // must both be present or the /auth/oauth/* routes 404.
+  if (flags.oauth && container.oauthController) {
+    app.use('/api/v1/auth/oauth', createOAuthRouter(container.oauthController));
   }
 
   app.use(errorHandler);

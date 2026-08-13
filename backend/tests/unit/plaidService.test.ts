@@ -46,6 +46,7 @@ const userRow: UserRow = {
   email: 'u@example.com',
   password_hash: 'hash',
   base_currency: 'USD',
+  google_sub: null,
   created_at: new Date(),
   updated_at: new Date(),
 };
