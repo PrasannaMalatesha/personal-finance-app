@@ -24,7 +24,11 @@ export function AuthShell({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: `linear-gradient(180deg, ${brand.teal[50]} 0%, ${brand.slate[50]} 60%)`,
+        // Light: soft teal→off-white wash. Dark: solid app background.
+        background: (t) =>
+          t.palette.mode === 'dark'
+            ? t.palette.background.default
+            : `linear-gradient(180deg, ${brand.teal[50]} 0%, ${brand.slate[50]} 60%)`,
         py: { xs: 4, md: 8 },
         px: 2,
       }}

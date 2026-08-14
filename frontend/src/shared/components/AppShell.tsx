@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/LogoutOutlined';
 import SettingsIcon from '@mui/icons-material/SettingsOutlined';
+import { ColorModeToggle } from './ColorModeToggle';
 import { Link as RouterLink, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { brand } from '../../app/theme';
 import { flags } from '../../flags';
@@ -171,6 +172,7 @@ export function AppShell() {
               </Button>
             ))}
           </Stack>
+          <ColorModeToggle />
           {user ? <UserMenu email={user.email} /> : null}
         </Toolbar>
       </AppBar>

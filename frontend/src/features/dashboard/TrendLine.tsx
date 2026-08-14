@@ -4,6 +4,7 @@ import {
   CardContent,
   Stack,
   Typography,
+  useTheme,
 } from '@mui/material';
 import {
   CartesianGrid,
@@ -38,6 +39,7 @@ export function TrendLine({
   data: DashboardTrendPoint[];
   currency: string;
 }) {
+  const theme = useTheme();
   const rows = data.map((p) => ({
     label: shortMonth(p.month),
     Income: Number(p.income),
@@ -62,7 +64,7 @@ export function TrendLine({
             <Box sx={{ width: '100%', height: 260 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={rows} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={brand.slate[200]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
                   <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                   <YAxis
                     tick={{ fontSize: 12 }}
