@@ -4,6 +4,7 @@ import {
   CardContent,
   Stack,
   Typography,
+  useTheme,
 } from '@mui/material';
 import {
   Area,
@@ -37,6 +38,7 @@ export function NetWorthChart({
   data: DashboardNetWorthPoint[];
   currency: string;
 }) {
+  const theme = useTheme();
   const rows = data.map((p) => ({
     label: shortMonth(p.month),
     'Net worth': Number(p.netWorth),
@@ -93,7 +95,7 @@ export function NetWorthChart({
                       <stop offset="100%" stopColor={brand.teal[500]} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={brand.slate[200]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
                   <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                   <YAxis
                     tick={{ fontSize: 12 }}
