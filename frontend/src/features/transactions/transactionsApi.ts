@@ -33,6 +33,7 @@ function buildQuery(filters: TransactionsFilters, cursor?: string): string {
   if (filters.categoryId) params.set('categoryId', filters.categoryId);
   if (filters.from) params.set('from', filters.from);
   if (filters.to) params.set('to', filters.to);
+  if (filters.q) params.set('q', filters.q);
   if (filters.limit) params.set('limit', String(filters.limit));
   if (cursor) params.set('cursor', cursor);
   const s = params.toString();
@@ -85,6 +86,45 @@ export async function updateTransaction(
 
 export async function deleteTransaction(id: string): Promise<void> {
   await apiFetch<void>(`/api/v1/transactions/${id}`, { method: 'DELETE' });
+}
+
+/**
+ * Downloads a CSV of transactions honoring the current filters. We fetch()
+ * with credentials rather than using an <a href> — split-origin deploys
+ * (Vercel + Render) don't send cookies on top-level navigations to a
+ * different registrable domain, but they do with fetch({credentials}).
+ */
+export async function downloadTransactionsCsv(filters: TransactionsFilters): Promise<void> {
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
+  const params = new URLSearchParams();
+  if (filters.accountId) params.set('accountId', filters.accountId);
+  if (filters.categoryId && filters.categoryId !== 'uncategorized') {
+    params.set('categoryId', filters.categoryId);
+  }
+  if (filters.from) params.set('from', filters.from);
+  if (filters.to) params.set('to', filters.to);
+  if (filters.q) params.set('q', filters.q);
+  const qs = params.toString();
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v1/transactions/export.csv${qs ? `?${qs}` : ''}`;
+
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) throw new Error(`Export failed with status ${res.status}`);
+  const blob = await res.blob();
+
+  // Filename comes from Content-Disposition when possible; otherwise
+  // synthesize one so the browser doesn't save `download`.
+  const disp = res.headers.get('Content-Disposition') ?? '';
+  const match = /filename="?([^";]+)"?/.exec(disp);
+  const filename = match?.[1] ?? `transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objectUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(objectUrl);
 }
 
 export interface LearnRuleResult {

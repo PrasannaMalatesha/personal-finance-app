@@ -16,6 +16,8 @@ import {
   Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import DownloadIcon from '@mui/icons-material/FileDownloadOutlined';
+import { downloadTransactionsCsv } from './transactionsApi';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import { Link as RouterLink } from 'react-router-dom';
 import { EmptyState } from '../../shared/components/EmptyState';
@@ -86,6 +88,26 @@ export function TransactionsPage() {
   };
 
   const noAccounts = accounts.data && accounts.data.length === 0;
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const onExport = async () => {
+    setExporting(true);
+    setExportError(null);
+    try {
+      // The UNCATEGORIZED sentinel is client-only; strip it from the
+      // export request so the backend doesn't try to parse it as a UUID.
+      const backendFilters = { ...filters };
+      if (backendFilters.categoryId === UNCATEGORIZED_SENTINEL) {
+        delete backendFilters.categoryId;
+      }
+      await downloadTransactionsCsv(backendFilters);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Export failed');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <Stack spacing={3}>
@@ -98,15 +120,26 @@ export function TransactionsPage() {
             Filter, edit, and add transactions manually.
           </Typography>
         </Stack>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={openCreate}
-          disabled={noAccounts}
-        >
-          Add transaction
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={onExport}
+            disabled={exporting || noAccounts}
+          >
+            {exporting ? 'Exporting…' : 'Download CSV'}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={openCreate}
+            disabled={noAccounts}
+          >
+            Add transaction
+          </Button>
+        </Stack>
       </Stack>
+      {exportError && <Alert severity="error">{exportError}</Alert>}
 
       {(accounts.isError || categories.isError || txQuery.isError) && (
         <Alert severity="error">

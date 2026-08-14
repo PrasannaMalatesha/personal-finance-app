@@ -13,14 +13,33 @@ export interface TransactionRow {
   updated_at: Date;
 }
 
+export interface ExportRow {
+  date: string;
+  account_name: string;
+  description: string;
+  amount: string;
+  category_name: string | null;
+}
+
 export interface ListFilters {
   userId: string;
   accountId?: string;
   categoryId?: string;
   from?: string; // 'YYYY-MM-DD'
   to?: string;
+  /** Case-insensitive substring on description. */
+  q?: string;
   cursor?: { date: string; id: string };
   limit: number;
+}
+
+export interface ExportFilters {
+  userId: string;
+  accountId?: string;
+  categoryId?: string;
+  from?: string;
+  to?: string;
+  q?: string;
 }
 
 export interface CreateInput {
@@ -62,6 +81,15 @@ export interface BulkCreateInput {
 
 export interface TransactionsRepo {
   listForUser(filters: ListFilters, executor?: Executor): Promise<TransactionRow[]>;
+  /**
+   * Returns all matching rows for CSV export — no pagination. Joins
+   * accounts + categories so the caller can render human-readable names
+   * without an N+1 lookup.
+   */
+  listAllForExport(
+    filters: ExportFilters,
+    executor?: Executor,
+  ): Promise<ExportRow[]>;
   findByIdForUser(
     id: string,
     userId: string,
@@ -154,6 +182,10 @@ export function createTransactionsRepo(pool: Pool): TransactionsRepo {
         conditions.push(`t.date <= $${i++}`);
         values.push(filters.to);
       }
+      if (filters.q) {
+        conditions.push(`t.description ILIKE '%' || $${i++} || '%'`);
+        values.push(filters.q);
+      }
       if (filters.cursor) {
         conditions.push(`(t.date, t.id) < ($${i++}::date, $${i++}::uuid)`);
         values.push(filters.cursor.date, filters.cursor.id);
@@ -169,6 +201,49 @@ export function createTransactionsRepo(pool: Pool): TransactionsRepo {
          WHERE ${conditions.join(' AND ')}
          ORDER BY t.date DESC, t.id DESC
          LIMIT $${limitIdx}`,
+        values,
+      );
+      return rows;
+    },
+
+    async listAllForExport(filters, executor = pool) {
+      const conditions: string[] = ['a.user_id = $1'];
+      const values: unknown[] = [filters.userId];
+      let i = 2;
+
+      if (filters.accountId) {
+        conditions.push(`t.account_id = $${i++}`);
+        values.push(filters.accountId);
+      }
+      if (filters.categoryId) {
+        conditions.push(`t.category_id = $${i++}`);
+        values.push(filters.categoryId);
+      }
+      if (filters.from) {
+        conditions.push(`t.date >= $${i++}`);
+        values.push(filters.from);
+      }
+      if (filters.to) {
+        conditions.push(`t.date <= $${i++}`);
+        values.push(filters.to);
+      }
+      if (filters.q) {
+        conditions.push(`t.description ILIKE '%' || $${i++} || '%'`);
+        values.push(filters.q);
+      }
+
+      const { rows } = await executor.query<ExportRow>(
+        `SELECT
+           to_char(t.date, 'YYYY-MM-DD') AS date,
+           a.name AS account_name,
+           t.description,
+           t.amount::text AS amount,
+           c.name AS category_name
+         FROM transactions t
+         JOIN accounts a ON a.id = t.account_id
+         LEFT JOIN categories c ON c.id = t.category_id
+         WHERE ${conditions.join(' AND ')}
+         ORDER BY t.date ASC, t.id ASC`,
         values,
       );
       return rows;

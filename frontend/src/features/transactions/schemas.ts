@@ -42,5 +42,7 @@ export interface TransactionsFilters {
   categoryId?: string;
   from?: string;
   to?: string;
+  /** Free-text search on description (ILIKE %q% server-side). */
+  q?: string;
   limit?: number;
 }
