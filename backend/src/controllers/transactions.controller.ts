@@ -2,12 +2,14 @@ import type { TransactionsService } from '../services/transactions.service';
 import type { RulesService } from '../services/rules.service';
 import {
   CreateTransactionInput,
+  ExportTransactionsQuery,
   ListTransactionsQuery,
   UpdateTransactionInput,
 } from '../schemas/transactions';
 import type { AuthedRequest } from '../lib/handler';
 import type { IdempotencyContext } from '../middleware/idempotency';
 import { flags } from '../flags';
+import type { Request, Response, NextFunction } from 'express';
 
 export interface TransactionsController {
   list(req: AuthedRequest): Promise<{ status: number; body: unknown }>;
@@ -17,6 +19,9 @@ export interface TransactionsController {
   ): Promise<{ status: number; body: unknown }>;
   update(req: AuthedRequest): Promise<{ status: number; body: unknown }>;
   remove(req: AuthedRequest): Promise<{ status: number; body: unknown }>;
+  // CSV export writes text/csv directly to the response, so it uses the raw
+  // Express handler signature rather than the { status, body } convention.
+  exportCsv(req: Request, res: Response, next: NextFunction): Promise<void>;
 }
 
 export function createTransactionsController(
@@ -68,6 +73,23 @@ export function createTransactionsController(
     async remove(req) {
       await service.remove(req.user.id, req.params.id!);
       return { status: 204, body: undefined };
+    },
+
+    async exportCsv(req, res, next) {
+      try {
+        const userId = (req as AuthedRequest).user.id;
+        const query = ExportTransactionsQuery.parse(req.query);
+        const csv = await service.exportCsv(userId, query);
+        const today = new Date().toISOString().slice(0, 10);
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="transactions-${today}.csv"`,
+        );
+        res.status(200).send(csv);
+      } catch (err) {
+        next(err);
+      }
     },
   };
 }

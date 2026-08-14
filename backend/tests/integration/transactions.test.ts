@@ -463,6 +463,78 @@ describe('Transactions (integration)', () => {
     });
   });
 
+  describe('search + CSV export', () => {
+    async function seedThree(accountId: string): Promise<void> {
+      for (const row of [
+        { description: 'STARBUCKS COFFEE #123', amount: '-4.50', date: '2026-07-10' },
+        { description: 'STARBUCKS COFFEE #456', amount: '-4.75', date: '2026-07-11' },
+        { description: 'Rent, July', amount: '-1200.00', date: '2026-07-01' },
+      ]) {
+        await request(app)
+          .post('/api/v1/transactions')
+          .set('Cookie', accessCookie)
+          .set('Idempotency-Key', randomUUID())
+          .send({
+            accountId,
+            date: row.date,
+            description: row.description,
+            amount: row.amount,
+            categoryId: null,
+          });
+      }
+    }
+
+    it('GET /transactions?q=starbucks filters by description substring (case-insensitive)', async () => {
+      const accountId = await createAccount(app, accessCookie, 'Search Acct');
+      await seedThree(accountId);
+      const res = await request(app)
+        .get('/api/v1/transactions?q=starbucks')
+        .set('Cookie', accessCookie);
+      expect(res.status).toBe(200);
+      const items = res.body.data as Array<{ description: string }>;
+      expect(items).toHaveLength(2);
+      expect(items.every((t) => /STARBUCKS/i.test(t.description))).toBe(true);
+    });
+
+    it('GET /transactions?q=xyz returns [] when nothing matches', async () => {
+      const accountId = await createAccount(app, accessCookie, 'Empty Search');
+      await seedThree(accountId);
+      const res = await request(app)
+        .get('/api/v1/transactions?q=doesnotexist')
+        .set('Cookie', accessCookie);
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual([]);
+    });
+
+    it('GET /transactions/export.csv returns text/csv with the right rows', async () => {
+      const accountId = await createAccount(app, accessCookie, 'Export Acct');
+      await seedThree(accountId);
+      const res = await request(app)
+        .get('/api/v1/transactions/export.csv')
+        .set('Cookie', accessCookie);
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toMatch(/text\/csv/);
+      expect(res.headers['content-disposition']).toMatch(/transactions-\d{4}-\d{2}-\d{2}\.csv/);
+      const lines = res.text.trim().split(/\r?\n/);
+      expect(lines[0]).toBe('Date,Account,Description,Amount,Category');
+      expect(lines).toHaveLength(4); // header + 3 rows
+      // Rent row has a comma so should be quoted.
+      const rent = lines.find((l) => l.includes('Rent'));
+      expect(rent).toContain('"Rent, July"');
+    });
+
+    it('export honors the q filter', async () => {
+      const accountId = await createAccount(app, accessCookie, 'Export Filter');
+      await seedThree(accountId);
+      const res = await request(app)
+        .get('/api/v1/transactions/export.csv?q=starbucks')
+        .set('Cookie', accessCookie);
+      expect(res.status).toBe(200);
+      const lines = res.text.trim().split(/\r?\n/);
+      expect(lines).toHaveLength(3); // header + 2 starbucks rows
+    });
+  });
+
   describe('PATCH /api/v1/transactions/:id', () => {
     it('updates fields', async () => {
       const accountId = await createAccount(app, accessCookie, 'Checking');

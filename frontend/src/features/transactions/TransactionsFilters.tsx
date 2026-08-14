@@ -1,4 +1,6 @@
-import { MenuItem, Stack, TextField } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { InputAdornment, MenuItem, Stack, TextField } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
 import type { AccountPublic } from '../accounts/schemas';
 import type { CategoryPublic } from '../categories/categoriesApi';
 import type { TransactionsFilters as Filters } from './schemas';
@@ -19,6 +21,22 @@ export function TransactionsFilters({ value, onChange, accounts, categories }: P
     if (v === undefined || v === '') delete next[key];
     onChange(next);
   };
+
+  // Local mirror for the search input so keystrokes stay responsive; commit
+  // to the query filter (which triggers a refetch) after a short pause.
+  const [searchDraft, setSearchDraft] = useState(value.q ?? '');
+  useEffect(() => {
+    // Re-sync when the parent resets filters (e.g. "clear all").
+    setSearchDraft(value.q ?? '');
+  }, [value.q]);
+  useEffect(() => {
+    const trimmed = searchDraft.trim();
+    if (trimmed === (value.q ?? '')) return;
+    const t = window.setTimeout(() => set('q', trimmed || undefined), 300);
+    return () => window.clearTimeout(t);
+    // Only depends on searchDraft — chasing `value.q` would race the debounce.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchDraft]);
 
   return (
     <Stack
@@ -82,6 +100,22 @@ export function TransactionsFilters({ value, onChange, accounts, categories }: P
         value={value.to ?? ''}
         onChange={(e) => set('to', e.target.value || undefined)}
         slotProps={{ inputLabel: { shrink: true } }}
+      />
+      <TextField
+        label="Search"
+        placeholder="e.g. starbucks"
+        value={searchDraft}
+        onChange={(e) => setSearchDraft(e.target.value)}
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" color="disabled" />
+              </InputAdornment>
+            ),
+          },
+        }}
+        sx={{ flexGrow: 1, minWidth: 200 }}
       />
     </Stack>
   );

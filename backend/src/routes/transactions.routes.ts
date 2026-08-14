@@ -11,6 +11,10 @@ export function createTransactionsRouter(
   const router = Router();
   router.use(authMiddleware);
   router.get('/', send(controller.list));
+  // Export is above the :id delete route (Express matches in order); the
+  // filename extension makes the intent obvious from the URL and helps
+  // browsers save the file with the right suffix.
+  router.get('/export.csv', controller.exportCsv);
   router.post('/', idempotent(controller.create));
   router.patch('/:id', send(controller.update));
   router.delete('/:id', send(controller.remove));

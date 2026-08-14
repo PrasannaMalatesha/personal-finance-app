@@ -43,8 +43,23 @@ export const ListTransactionsQuery = z.object({
   to: DateString.optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
+  // Free-text search on description. Case-insensitive substring match.
+  // Blank → treated as absent so the filter drops out of the SQL.
+  q: z
+    .string()
+    .trim()
+    .max(120)
+    .transform((s) => (s === '' ? undefined : s))
+    .optional(),
 });
 export type ListTransactionsQuery = z.infer<typeof ListTransactionsQuery>;
+
+// Export shares every filter with the list except paging.
+export const ExportTransactionsQuery = ListTransactionsQuery.omit({
+  cursor: true,
+  limit: true,
+});
+export type ExportTransactionsQuery = z.infer<typeof ExportTransactionsQuery>;
 
 export const TransactionPublic = z.object({
   id: z.string().uuid(),

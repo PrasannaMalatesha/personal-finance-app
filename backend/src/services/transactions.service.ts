@@ -8,10 +8,12 @@ import type { CategoriesRepo } from '../repositories/categories.repo';
 import type { CategorizationService } from './categorization.service';
 import type {
   CreateTransactionInput,
+  ExportTransactionsQuery,
   ListTransactionsQuery,
   TransactionPublic,
   UpdateTransactionInput,
 } from '../schemas/transactions';
+import { toCsv } from '../lib/csvExport';
 import { NotFoundError, ValidationError } from '../errors/AppError';
 
 interface Cursor {
@@ -90,6 +92,7 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
       categoryId: query.categoryId,
       from: query.from,
       to: query.to,
+      q: query.q,
       cursor,
       limit: query.limit,
     });
@@ -160,7 +163,31 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
     if (!deleted) throw new NotFoundError('Transaction');
   }
 
-  return { list, create, update, remove };
+  async function exportCsv(
+    userId: string,
+    query: ExportTransactionsQuery,
+  ): Promise<string> {
+    const rows = await transactionsRepo.listAllForExport({
+      userId,
+      accountId: query.accountId,
+      categoryId: query.categoryId,
+      from: query.from,
+      to: query.to,
+      q: query.q,
+    });
+    return toCsv(
+      [
+        { key: 'date', label: 'Date' },
+        { key: 'account_name', label: 'Account' },
+        { key: 'description', label: 'Description' },
+        { key: 'amount', label: 'Amount' },
+        { key: 'category_name', label: 'Category' },
+      ],
+      rows,
+    );
+  }
+
+  return { list, create, update, remove, exportCsv };
 }
 
 export type TransactionsService = ReturnType<typeof createTransactionsService>;
