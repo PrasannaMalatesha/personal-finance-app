@@ -102,6 +102,10 @@ export function TransactionsFilters({ value, onChange, accounts, categories }: P
         slotProps={{ inputLabel: { shrink: true } }}
       />
       <TextField
+        // type="search" gives the browser's native clear-X affordance +
+        // Enter-to-submit semantics; the debounce already commits on pause,
+        // so both interaction paths land on the same handler.
+        type="search"
         label="Search"
         placeholder="e.g. starbucks"
         value={searchDraft}
