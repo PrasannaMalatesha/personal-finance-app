@@ -153,20 +153,38 @@ export function AppShell() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <AppBar position="static">
+      {/* Sticky AppBar so the glass treatment can actually blur what's
+          scrolling underneath — the whole point of the material. */}
+      <AppBar position="sticky">
         <Toolbar sx={{ gap: 3 }}>
           <BrandMark />
-          <Stack direction="row" spacing={0.5} sx={{ flexGrow: 1 }}>
+          <Stack direction="row" spacing={0.25} sx={{ flexGrow: 1 }}>
             {NAV.map((item) => (
               <Button
                 key={item.to}
                 component={NavLink}
                 to={item.to}
                 size="small"
-                sx={{
+                sx={(t) => ({
                   color: 'text.secondary',
-                  '&.active': { color: 'primary.main', backgroundColor: 'transparent' },
-                }}
+                  paddingInline: 1.5,
+                  paddingBlock: 0.75,
+                  borderRadius: `${t.pfa.radius.md}px`,
+                  fontWeight: 500,
+                  transition: `color ${t.pfa.motion.duration.fast}ms ${t.pfa.motion.easing.standard}, background-color ${t.pfa.motion.duration.fast}ms ${t.pfa.motion.easing.standard}`,
+                  '&:hover': {
+                    color: 'text.primary',
+                    backgroundColor: t.palette.mode === 'dark' ? '#ffffff08' : '#0000000a',
+                  },
+                  // Pill affordance for the active route.
+                  '&.active': {
+                    color: 'primary.main',
+                    backgroundColor: t.palette.mode === 'dark'
+                      ? `${t.palette.primary.main}1a`
+                      : `${t.palette.primary.main}10`,
+                    fontWeight: 600,
+                  },
+                })}
               >
                 {item.label}
               </Button>
@@ -176,7 +194,7 @@ export function AppShell() {
           {user ? <UserMenu email={user.email} /> : null}
         </Toolbar>
       </AppBar>
-      <Container component="main" sx={{ py: 4, flexGrow: 1 }}>
+      <Container component="main" sx={{ py: 4, flexGrow: 1 }} className="pfa-fade-up">
         <Outlet />
       </Container>
     </Box>

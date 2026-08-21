@@ -1,11 +1,11 @@
 import {
   Box,
-  Card,
   CardContent,
   Stack,
   Typography,
   useTheme,
 } from '@mui/material';
+import { Surface } from '../../shared/components/Surface';
 import {
   Area,
   AreaChart,
@@ -50,7 +50,7 @@ export function NetWorthChart({
   const hasAny = data.some((p) => Number(p.netWorth) !== 0);
 
   return (
-    <Card variant="outlined">
+    <Surface variant="glass" hover className="pfa-fade-up">
       <CardContent>
         <Stack spacing={1}>
           <Stack direction="row" alignItems="baseline" justifyContent="space-between">
@@ -123,6 +123,6 @@ export function NetWorthChart({
           )}
         </Stack>
       </CardContent>
-    </Card>
+    </Surface>
   );
 }

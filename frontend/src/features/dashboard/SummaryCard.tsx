@@ -1,11 +1,11 @@
 import {
   Box,
-  Card,
   CardContent,
   LinearProgress,
   Stack,
   Typography,
 } from '@mui/material';
+import { Surface } from '../../shared/components/Surface';
 import { formatMoney } from '../../shared/lib/format';
 import type { DashboardSummary } from './schemas';
 
@@ -35,7 +35,7 @@ export function SummaryCard({
   const netN = Number(summary.net);
 
   return (
-    <Card variant="outlined">
+    <Surface variant="accent" hover className="pfa-fade-up">
       <CardContent>
         <Stack spacing={2.5}>
           <Stack spacing={0.5}>
@@ -106,7 +106,7 @@ export function SummaryCard({
           </Stack>
         </Stack>
       </CardContent>
-    </Card>
+    </Surface>
   );
 }
 
