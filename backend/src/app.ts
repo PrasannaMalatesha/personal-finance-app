@@ -6,6 +6,7 @@ import { env } from './config/env';
 import { requestLogger } from './middleware/requestLogger';
 import { errorHandler } from './middleware/errorHandler';
 import { csrfMiddleware } from './middleware/csrf';
+import { globalApiRateLimit } from './middleware/rateLimit';
 import { healthzRouter } from './routes/healthz.routes';
 import { flagsRouter } from './routes/flags.routes';
 import { createAuthRouter } from './routes/auth.routes';
@@ -27,13 +28,43 @@ export function createApp(container: Container): Express {
   const app = express();
 
   app.disable('x-powered-by');
-  app.use(helmet());
+  // Explicit helmet config — the defaults are decent but making the CSP
+  // explicit means our security posture is version-locked (no silent drift
+  // if helmet bumps its defaults) and reviewable at a glance.
+  //
+  // 'self' + credentials-scoped CORS is enough because the frontend is a
+  // separate origin (Vercel) that talks to us over XHR — we never render
+  // untrusted HTML server-side, and we never load third-party JS in the
+  // API's own responses.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:'],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+        },
+      },
+      // HSTS max-age 180 days; browsers pin HTTPS after first successful hit.
+      hsts: { maxAge: 15552000, includeSubDomains: true, preload: false },
+      referrerPolicy: { policy: 'no-referrer' },
+      crossOriginResourcePolicy: { policy: 'same-site' },
+    }),
+  );
   app.use(
     cors({
       origin: env.FRONTEND_ORIGIN,
       credentials: true,
     }),
   );
+  // Blanket ceiling — catches enumeration scans and misbehaving clients.
+  // Per-endpoint limiters (login/signup/reset) stack on top for the more
+  // sensitive surfaces.
+  app.use('/api/v1', globalApiRateLimit);
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
   app.use(requestLogger);
