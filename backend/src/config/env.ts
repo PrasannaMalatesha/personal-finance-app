@@ -13,6 +13,13 @@ const envSchema = z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
       .default('info'),
     DATABASE_URL: z.string().url(),
+    // Pool tuning — sensible defaults, tunable per host. Render's free
+    // tier caps connections around 15; production Neon comfortably takes
+    // 30-50. STATEMENT_TIMEOUT bounds runaway queries so a bad join can't
+    // hold a connection forever.
+    DB_POOL_MAX: z.coerce.number().int().min(1).max(200).default(10),
+    DB_POOL_IDLE_MS: z.coerce.number().int().min(1_000).default(30_000),
+    DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(500).default(15_000),
     JWT_ACCESS_SECRET: z.string().min(32, 'must be >= 32 chars'),
     JWT_REFRESH_SECRET: z.string().min(32, 'must be >= 32 chars'),
     COOKIE_DOMAIN: z.string().default(''),

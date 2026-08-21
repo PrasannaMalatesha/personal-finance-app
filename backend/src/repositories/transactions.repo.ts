@@ -82,12 +82,16 @@ export interface BulkCreateInput {
 export interface TransactionsRepo {
   listForUser(filters: ListFilters, executor?: Executor): Promise<TransactionRow[]>;
   /**
-   * Returns all matching rows for CSV export — no pagination. Joins
-   * accounts + categories so the caller can render human-readable names
-   * without an N+1 lookup.
+   * Returns matching rows for CSV export. Joins accounts + categories so
+   * the caller can render human-readable names without an N+1 lookup.
+   *
+   * Set `limit` to cap the result — the caller can fetch `limit + 1` to
+   * detect "there's more" and fail cleanly rather than silently returning
+   * a truncated file.
    */
   listAllForExport(
     filters: ExportFilters,
+    limit?: number,
     executor?: Executor,
   ): Promise<ExportRow[]>;
   findByIdForUser(
@@ -206,7 +210,7 @@ export function createTransactionsRepo(pool: Pool): TransactionsRepo {
       return rows;
     },
 
-    async listAllForExport(filters, executor = pool) {
+    async listAllForExport(filters, limit, executor = pool) {
       const conditions: string[] = ['a.user_id = $1'];
       const values: unknown[] = [filters.userId];
       let i = 2;
@@ -232,7 +236,13 @@ export function createTransactionsRepo(pool: Pool): TransactionsRepo {
         values.push(filters.q);
       }
 
-      const { rows } = await executor.query<ExportRow>(
+      let limitClause = '';
+      if (limit !== undefined) {
+        limitClause = `LIMIT $${i++}`;
+        values.push(limit);
+      }
+
+      const { rows } = await (executor ?? pool).query<ExportRow>(
         `SELECT
            to_char(t.date, 'YYYY-MM-DD') AS date,
            a.name AS account_name,
@@ -243,7 +253,8 @@ export function createTransactionsRepo(pool: Pool): TransactionsRepo {
          JOIN accounts a ON a.id = t.account_id
          LEFT JOIN categories c ON c.id = t.category_id
          WHERE ${conditions.join(' AND ')}
-         ORDER BY t.date ASC, t.id ASC`,
+         ORDER BY t.date ASC, t.id ASC
+         ${limitClause}`,
         values,
       );
       return rows;

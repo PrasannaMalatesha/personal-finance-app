@@ -14,7 +14,7 @@ import type {
   UpdateTransactionInput,
 } from '../schemas/transactions';
 import { toCsv } from '../lib/csvExport';
-import { NotFoundError, ValidationError } from '../errors/AppError';
+import { NotFoundError, PayloadTooLargeError, ValidationError } from '../errors/AppError';
 
 interface Cursor {
   d: string;
@@ -163,18 +163,32 @@ export function createTransactionsService(deps: TransactionsServiceDeps) {
     if (!deleted) throw new NotFoundError('Transaction');
   }
 
+  // Ceiling on exported rows. Chosen so the resulting file stays under a
+  // few MB even with long descriptions. Fetch cap+1 to distinguish
+  // "exactly at cap" from "there are more rows the user isn't seeing" —
+  // the second case must fail loud, not truncate silently.
+  const EXPORT_ROW_CAP = 10_000;
+
   async function exportCsv(
     userId: string,
     query: ExportTransactionsQuery,
   ): Promise<string> {
-    const rows = await transactionsRepo.listAllForExport({
-      userId,
-      accountId: query.accountId,
-      categoryId: query.categoryId,
-      from: query.from,
-      to: query.to,
-      q: query.q,
-    });
+    const rows = await transactionsRepo.listAllForExport(
+      {
+        userId,
+        accountId: query.accountId,
+        categoryId: query.categoryId,
+        from: query.from,
+        to: query.to,
+        q: query.q,
+      },
+      EXPORT_ROW_CAP + 1,
+    );
+    if (rows.length > EXPORT_ROW_CAP) {
+      throw new PayloadTooLargeError(
+        `Export would return more than ${EXPORT_ROW_CAP.toLocaleString()} rows. Narrow with filters (date range, account, or category) and try again.`,
+      );
+    }
     return toCsv(
       [
         { key: 'date', label: 'Date' },

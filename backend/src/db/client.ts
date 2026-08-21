@@ -4,9 +4,22 @@ import logger from '../logger';
 
 export const pool = new Pool({
   connectionString: env.DATABASE_URL,
-  max: 10,
-  idleTimeoutMillis: 30_000,
+  max: env.DB_POOL_MAX,
+  idleTimeoutMillis: env.DB_POOL_IDLE_MS,
   connectionTimeoutMillis: 5_000,
+});
+
+// Set statement_timeout on every new connection so a runaway query can't
+// hold a pool slot forever. Applied on 'connect' rather than as a
+// per-query hint so callers don't have to remember it. Read replicas,
+// migrations, and long-running maintenance scripts should either raise
+// this or use a separate pool.
+pool.on('connect', (client) => {
+  client
+    .query(`SET statement_timeout = ${env.DB_STATEMENT_TIMEOUT_MS}`)
+    .catch((err: unknown) => {
+      logger.warn({ err }, 'Failed to set statement_timeout on new pg connection');
+    });
 });
 
 pool.on('error', (err) => {
