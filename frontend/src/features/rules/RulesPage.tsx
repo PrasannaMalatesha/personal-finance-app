@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import {
   Alert,
-  Box,
   Button,
   Chip,
-  CircularProgress,
   IconButton,
   Menu,
   MenuItem,
@@ -22,6 +20,7 @@ import AddIcon from '@mui/icons-material/Add';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import { EmptyState } from '../../shared/components/EmptyState';
+import { PageLoader } from '../../shared/components/PageLoader';
 import { useCategories } from '../categories/useCategories';
 import { useDeleteRule, useRules } from './useRules';
 import { RULE_MATCH_TYPE_LABELS, type RulePublic } from './schemas';
@@ -109,9 +108,7 @@ export function RulesPage() {
       </Stack>
 
       {rules.isPending && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={28} />
-        </Box>
+        <PageLoader />
       )}
 
       {rules.isError && (

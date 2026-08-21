@@ -1,10 +1,8 @@
 import { Fragment, useMemo, useState } from 'react';
 import {
   Alert,
-  Box,
   Button,
   Chip,
-  CircularProgress,
   IconButton,
   Menu,
   MenuItem,
@@ -23,6 +21,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
 import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
 import { EmptyState } from '../../shared/components/EmptyState';
+import { PageLoader } from '../../shared/components/PageLoader';
 import { useCategories, useDeleteCategory } from './useCategories';
 import { CategoryFormDialog } from './CategoryFormDialog';
 import type { CategoryPublic } from './categoriesApi';
@@ -133,9 +132,7 @@ export function CategoriesPage() {
       </Stack>
 
       {categories.isPending && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={28} />
-        </Box>
+        <PageLoader />
       )}
 
       {categories.isError && (

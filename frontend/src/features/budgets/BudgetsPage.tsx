@@ -3,13 +3,13 @@ import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   Stack,
   Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SavingsOutlinedIcon from '@mui/icons-material/SavingsOutlined';
 import { EmptyState } from '../../shared/components/EmptyState';
+import { PageLoader } from '../../shared/components/PageLoader';
 import { useAuth } from '../auth/useAuth';
 import { useCategories } from '../categories/useCategories';
 import { BudgetCard } from './BudgetCard';
@@ -77,9 +77,7 @@ export function BudgetsPage() {
       )}
 
       {(budgets.isPending || categories.isPending) && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={28} />
-        </Box>
+        <PageLoader />
       )}
 
       {noCategories && (

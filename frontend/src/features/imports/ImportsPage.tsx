@@ -2,10 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
-  Box,
   Button,
   Chip,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -25,6 +23,7 @@ import AddIcon from '@mui/icons-material/Add';
 import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined';
 import UndoIcon from '@mui/icons-material/UndoOutlined';
 import { EmptyState } from '../../shared/components/EmptyState';
+import { PageLoader } from '../../shared/components/PageLoader';
 import { useAccounts } from '../accounts/useAccounts';
 import { useImports, useUndoImport } from './useImports';
 
@@ -82,9 +81,7 @@ export function ImportsPage() {
       )}
 
       {imports.isPending && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={28} />
-        </Box>
+        <PageLoader />
       )}
 
       {imports.data && !hasRows && (

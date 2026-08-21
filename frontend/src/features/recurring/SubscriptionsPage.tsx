@@ -2,13 +2,13 @@ import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   Stack,
   Typography,
 } from '@mui/material';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import EventRepeatOutlinedIcon from '@mui/icons-material/EventRepeatOutlined';
 import { EmptyState } from '../../shared/components/EmptyState';
+import { PageLoader } from '../../shared/components/PageLoader';
 import { useAuth } from '../auth/useAuth';
 import {
   useDeleteRecurring,
@@ -80,9 +80,7 @@ export function SubscriptionsPage() {
       )}
 
       {groups.isPending && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={28} />
-        </Box>
+        <PageLoader />
       )}
 
       {groups.data && !hasAny && (
