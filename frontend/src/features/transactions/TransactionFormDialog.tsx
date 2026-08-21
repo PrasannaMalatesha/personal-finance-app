@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
 import { ApiError } from '../../shared/api/client';
 import { todayIso } from '../../shared/lib/format';
 import type { AccountPublic } from '../accounts/schemas';
@@ -120,12 +121,38 @@ export function TransactionFormDialog({
 
   const onDelete = async () => {
     if (!editing) return;
-    if (!window.confirm('Delete this transaction?')) return;
+    // Capture what we're about to delete so Undo can re-create it. The
+    // toast replaces the old window.confirm() — friction goes down, undo
+    // goes up. Emil's rule: name the action AND the recovery.
+    const snapshot = {
+      accountId: editing.accountId,
+      date: editing.date,
+      description: editing.description,
+      amount: editing.amount,
+      categoryId: editing.categoryId ?? '',
+    };
+    const label = editing.description || 'Transaction';
     try {
       await del.mutateAsync(editing.id);
       onClose();
+      toast.success(`Deleted "${label}"`, {
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            try {
+              await create.mutateAsync({
+                input: snapshot,
+                idempotencyKey: crypto.randomUUID(),
+              });
+              toast.success('Restored');
+            } catch {
+              toast.error('Could not restore. Please re-create manually.');
+            }
+          },
+        },
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Delete failed');
+      toast.error(err instanceof Error ? err.message : 'Delete failed');
     }
   };
 

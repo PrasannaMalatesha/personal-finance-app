@@ -81,6 +81,15 @@ export const motion = {
   easing: {
     /** Material-style ease-out — most page + card work. */
     standard: 'cubic-bezier(0.2, 0, 0, 1)',
+    /**
+     * Strong ease-out from Emil's playbook. Punchier than MUI's default;
+     * used for UI responses (button press release, hover exits, dropdowns).
+     * Feels crisp because the initial movement is instant — where the
+     * user is watching most closely.
+     */
+    emil: 'cubic-bezier(0.23, 1, 0.32, 1)',
+    /** Strong ease-in-out for on-screen movement (drawers, morphs). */
+    inOut: 'cubic-bezier(0.77, 0, 0.175, 1)',
     /** Overshoot for playful bits (rare). */
     spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
     /** Symmetric ease for theme swaps + reversible transitions. */
