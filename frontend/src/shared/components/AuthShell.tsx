@@ -3,8 +3,10 @@ import { Box, Container, Stack, Typography } from '@mui/material';
 import { brand } from '../../app/theme';
 
 /**
- * Centered card wrapper for /login and /signup. Softly tinted gradient bg,
- * brand mark on top, card auto-sized to the form.
+ * Centered card for /login and /signup. Light mode: soft teal wash gradient
+ * with a subtle radial highlight so the surface has depth without shouting.
+ * Dark mode: solid deep parchment. Card itself borrows the same treatment
+ * shared by dashboard "raised" surfaces so the visual language is coherent.
  */
 export function AuthShell({
   title,
@@ -24,53 +26,54 @@ export function AuthShell({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        // Light: soft teal→off-white wash. Dark: solid app background.
+        // Light: soft teal wash + a radial highlight. Dark: solid.
         background: (t) =>
           t.palette.mode === 'dark'
             ? t.palette.background.default
-            : `linear-gradient(180deg, ${brand.teal[50]} 0%, ${brand.slate[50]} 60%)`,
+            : `radial-gradient(1200px 600px at 50% -10%, ${brand.teal[100]} 0%, ${brand.teal[50]} 35%, ${t.palette.background.default} 70%)`,
         py: { xs: 4, md: 8 },
         px: 2,
       }}
     >
       <Container maxWidth="xs" disableGutters>
-        <Stack spacing={4} alignItems="center">
-          <Stack spacing={0.5} alignItems="center">
+        <Stack spacing={4} alignItems="center" className="pfa-fade-up">
+          <Stack spacing={0.75} alignItems="center">
             <Box
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: 2,
+              sx={(t) => ({
+                width: 56,
+                height: 56,
+                borderRadius: `${t.pfa.radius.md}px`,
                 background: `linear-gradient(135deg, ${brand.teal[500]}, ${brand.teal[700]})`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#fff',
                 fontWeight: 700,
-                fontSize: 20,
+                fontSize: 22,
                 letterSpacing: '-0.02em',
-              }}
+                boxShadow: t.pfa.elevation.card,
+              })}
               aria-hidden
             >
               ₹
             </Box>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               Personal Finance
             </Typography>
           </Stack>
 
           <Box
-            sx={{
+            sx={(t) => ({
               width: '100%',
               backgroundColor: 'background.paper',
-              border: (t) => `1px solid ${t.palette.divider}`,
-              borderRadius: 3,
-              boxShadow: '0 1px 3px 0 rgba(15, 23, 42, 0.05)',
+              border: `1px solid ${t.palette.divider}`,
+              borderRadius: `${t.pfa.radius.lg}px`,
+              boxShadow: t.pfa.elevation.dialog,
               p: { xs: 3, sm: 4 },
-            }}
+            })}
           >
-            <Stack spacing={0.5} sx={{ mb: 3 }}>
-              <Typography variant="h5" component="h1">
+            <Stack spacing={0.75} sx={{ mb: 3 }}>
+              <Typography variant="h3" component="h1">
                 {title}
               </Typography>
               {subtitle && (

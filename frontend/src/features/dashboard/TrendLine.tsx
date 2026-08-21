@@ -1,11 +1,11 @@
 import {
   Box,
-  Card,
   CardContent,
   Stack,
   Typography,
   useTheme,
 } from '@mui/material';
+import { Surface } from '../../shared/components/Surface';
 import {
   CartesianGrid,
   Legend,
@@ -50,7 +50,7 @@ export function TrendLine({
   );
 
   return (
-    <Card variant="outlined">
+    <Surface variant="glass" hover className="pfa-fade-up">
       <CardContent>
         <Stack spacing={1}>
           <Typography variant="overline" color="text.secondary">
@@ -99,6 +99,6 @@ export function TrendLine({
           )}
         </Stack>
       </CardContent>
-    </Card>
+    </Surface>
   );
 }

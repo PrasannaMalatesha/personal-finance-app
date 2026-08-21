@@ -1,11 +1,6 @@
-import {
-  Box,
-  Card,
-  CardContent,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Box, CardContent, Stack, Typography } from '@mui/material';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { Surface } from '../../shared/components/Surface';
 import { formatMoney } from '../../shared/lib/format';
 import type { DashboardCategorySlice } from './schemas';
 
@@ -24,7 +19,7 @@ export function ByCategoryPie({
   const total = data.reduce((sum, d) => sum + Number(d.amount), 0);
 
   return (
-    <Card variant="outlined" sx={{ height: '100%' }}>
+    <Surface variant="glass" hover sx={{ height: '100%' }} className="pfa-fade-up">
       <CardContent>
         <Stack spacing={1}>
           <Typography variant="overline" color="text.secondary">
@@ -104,6 +99,6 @@ export function ByCategoryPie({
           )}
         </Stack>
       </CardContent>
-    </Card>
+    </Surface>
   );
 }
