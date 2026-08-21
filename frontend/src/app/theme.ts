@@ -134,6 +134,37 @@ function createAppTheme(mode: ColorMode): Theme {
           '.pfa-fade-up': {
             animation: `pfa-fade-up ${motion.duration.slow}ms ${motion.easing.standard} both`,
           },
+          // Text selection tinted with the primary — a browser surface most
+          // apps forget. Small but reads "designed on purpose".
+          '::selection': {
+            backgroundColor: alpha(primaryMain, 0.25),
+            color: isDark ? N.inkDark : N.ink,
+          },
+          // Real focus rings for keyboard users; mouse focus stays quiet.
+          '*:focus-visible': {
+            outline: `2px solid ${primaryMain}`,
+            outlineOffset: 2,
+            borderRadius: 2,
+          },
+          // Themed scrollbars — webkit only, but that's Chrome/Safari/Edge.
+          // Firefox users get a subtle themed one via scrollbar-color.
+          '*': {
+            scrollbarColor: `${border} transparent`,
+            scrollbarWidth: 'thin',
+          },
+          '*::-webkit-scrollbar': {
+            width: 10,
+            height: 10,
+          },
+          '*::-webkit-scrollbar-track': { backgroundColor: 'transparent' },
+          '*::-webkit-scrollbar-thumb': {
+            backgroundColor: border,
+            borderRadius: 8,
+            border: `2px solid ${bg.default}`,
+          },
+          '*::-webkit-scrollbar-thumb:hover': {
+            backgroundColor: isDark ? '#3A4757' : '#C7CDD6',
+          },
           '@media (prefers-reduced-motion: reduce)': {
             '*, *::before, *::after': {
               animationDuration: '0.01ms !important',
