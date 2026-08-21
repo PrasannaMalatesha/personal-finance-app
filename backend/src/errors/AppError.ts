@@ -39,3 +39,10 @@ export class ConflictError extends AppError {
     super(409, 'CONFLICT', message);
   }
 }
+
+/** 413 — request would return more rows than the server is willing to build. */
+export class PayloadTooLargeError extends AppError {
+  constructor(message: string) {
+    super(413, 'PAYLOAD_TOO_LARGE', message);
+  }
+}
