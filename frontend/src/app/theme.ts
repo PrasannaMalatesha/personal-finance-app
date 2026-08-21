@@ -175,13 +175,20 @@ function createAppTheme(mode: ColorMode): Theme {
         },
       },
       MuiButton: {
-        defaultProps: { disableElevation: true },
+        defaultProps: { disableElevation: true, disableRipple: true },
         styleOverrides: {
           root: {
             paddingInline: 16,
             paddingBlock: 8,
             borderRadius: radius.md,
-            transition: `background-color ${motion.duration.fast}ms ${motion.easing.standard}, transform ${motion.duration.fast}ms ${motion.easing.standard}, box-shadow ${motion.duration.fast}ms ${motion.easing.standard}`,
+            // Emil ease-out for the release; press feedback is instant.
+            transition: `background-color ${motion.duration.fast}ms ${motion.easing.emil}, transform ${motion.duration.fast}ms ${motion.easing.emil}, box-shadow ${motion.duration.fast}ms ${motion.easing.emil}, border-color ${motion.duration.fast}ms ${motion.easing.emil}`,
+            // Tactile press — the interface admits it heard the click.
+            // 0.97 is the sweet-spot: visible but not cartoonish.
+            '&:active': {
+              transform: 'scale(0.97)',
+              transitionDuration: '80ms',
+            },
           },
           containedPrimary: {
             '&:hover': { backgroundColor: isDark ? tealDark[400] : teal[600] },
@@ -196,9 +203,17 @@ function createAppTheme(mode: ColorMode): Theme {
         },
       },
       MuiIconButton: {
+        defaultProps: { disableRipple: true },
         styleOverrides: {
           root: {
-            transition: `background-color ${motion.duration.fast}ms ${motion.easing.standard}`,
+            transition: `background-color ${motion.duration.fast}ms ${motion.easing.emil}, transform ${motion.duration.fast}ms ${motion.easing.emil}`,
+            // Small-target = deeper press. Emil's 0.94 (vs 0.97 on bigger
+            // buttons) — the smaller the surface, the more visual feedback
+            // it needs to register as pressed.
+            '&:active': {
+              transform: 'scale(0.94)',
+              transitionDuration: '80ms',
+            },
           },
         },
       },
@@ -291,6 +306,14 @@ function createAppTheme(mode: ColorMode): Theme {
         },
       },
       MuiTooltip: {
+        // enterDelay guards against accidental hover; enterNextDelay:0 makes
+        // adjacent tooltips feel instant (the Sonner principle — once one is
+        // open, sweeping across a toolbar shouldn't repeat the wait).
+        defaultProps: {
+          enterDelay: 400,
+          enterNextDelay: 0,
+          leaveDelay: 0,
+        },
         styleOverrides: {
           tooltip: {
             borderRadius: radius.sm,

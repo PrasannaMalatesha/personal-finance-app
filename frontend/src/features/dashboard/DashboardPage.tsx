@@ -1,11 +1,5 @@
 import { useState } from 'react';
-import {
-  Alert,
-  Box,
-  CircularProgress,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Stack, Typography } from '@mui/material';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import { useNavigate } from 'react-router-dom';
 import { EmptyState } from '../../shared/components/EmptyState';
@@ -17,6 +11,7 @@ import { SummaryCard } from './SummaryCard';
 import { ByCategoryPie } from './ByCategoryPie';
 import { TrendLine } from './TrendLine';
 import { NetWorthChart } from './NetWorthChart';
+import { DashboardSkeleton } from './DashboardSkeleton';
 import { flags } from '../../flags';
 import { useByCategory, useNetWorth, useSummary, useTrend } from './useDashboard';
 
@@ -64,14 +59,22 @@ export function DashboardPage() {
         <Alert severity="error">{(anyError as Error).message}</Alert>
       )}
 
-      {!zeroAccounts && anyPending && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={28} />
-        </Box>
-      )}
+      {!zeroAccounts && anyPending && <DashboardSkeleton />}
 
       {!zeroAccounts && summary.data && byCategory.data && trend.data && (
-        <Stack spacing={2}>
+        // Stagger the card entries via nth-child. Each Surface child already
+        // opts into pfa-fade-up; here we just shift the animation-delay so
+        // they cascade rather than land in unison. 60ms is Emil's low end —
+        // fast enough to feel like polish, slow enough to notice.
+        <Stack
+          spacing={2}
+          sx={{
+            '& .pfa-fade-up:nth-of-type(1)': { animationDelay: '0ms' },
+            '& .pfa-fade-up:nth-of-type(2)': { animationDelay: '60ms' },
+            '& .pfa-fade-up:nth-of-type(3)': { animationDelay: '120ms' },
+            '& .pfa-fade-up:nth-of-type(4)': { animationDelay: '180ms' },
+          }}
+        >
           <SummaryCard summary={summary.data} currency={currency} />
           <Box
             sx={{
