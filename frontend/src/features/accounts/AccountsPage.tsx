@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import {
   Alert,
-  Box,
   Button,
   Chip,
-  CircularProgress,
   IconButton,
   Menu,
   MenuItem,
@@ -22,6 +20,7 @@ import AddIcon from '@mui/icons-material/Add';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { EmptyState } from '../../shared/components/EmptyState';
+import { PageLoader } from '../../shared/components/PageLoader';
 import { MoneyCell } from '../../shared/components/MoneyCell';
 import { useAuth } from '../auth/useAuth';
 import { flags } from '../../flags';
@@ -114,9 +113,7 @@ export function AccountsPage() {
       </Stack>
 
       {accounts.isPending && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={28} />
-        </Box>
+        <PageLoader />
       )}
 
       {accounts.isError && (

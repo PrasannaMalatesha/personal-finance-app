@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   Chip,
-  CircularProgress,
   Paper,
   Stack,
   Table,
@@ -21,6 +20,7 @@ import { downloadTransactionsCsv } from './transactionsApi';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import { Link as RouterLink } from 'react-router-dom';
 import { EmptyState } from '../../shared/components/EmptyState';
+import { PageLoader } from '../../shared/components/PageLoader';
 import { MoneyCell } from '../../shared/components/MoneyCell';
 import { formatDate } from '../../shared/lib/format';
 import { useAuth } from '../auth/useAuth';
@@ -172,9 +172,7 @@ export function TransactionsPage() {
       )}
 
       {!noAccounts && txQuery.isPending && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={28} />
-        </Box>
+        <PageLoader />
       )}
 
       {!noAccounts && txQuery.data && visibleRows.length === 0 && (
