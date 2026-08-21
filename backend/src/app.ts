@@ -70,6 +70,17 @@ export function createApp(container: Container): Express {
   app.use(requestLogger);
   app.use(csrfMiddleware);
 
+  // Friendly root — 3001 is a JSON API, so someone hitting it in a
+  // browser used to see Express's default "Cannot GET /". Point them at
+  // the real front door instead.
+  app.get('/', (_req, res) => {
+    res.status(200).json({
+      name: 'personal-finance-app',
+      status: 'ok',
+      docs: '/healthz',
+      note: 'This is the API. The web app runs separately.',
+    });
+  });
   app.use('/healthz', healthzRouter);
   app.use('/api/v1/flags', flagsRouter);
   app.use(
