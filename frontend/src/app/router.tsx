@@ -2,6 +2,8 @@ import { lazy, Suspense } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { AppShell } from '../shared/components/AppShell';
+import { AppErrorBoundary } from '../shared/components/AppErrorBoundary';
+import { PageError } from '../shared/components/PageError';
 import { HealthPage } from '../features/health/HealthPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { SignupPage } from '../features/auth/SignupPage';
@@ -87,9 +89,14 @@ const router = createBrowserRouter([
       },
     ],
   },
-  { path: '*', element: <Navigate to="/" replace /> },
+  // Anything unmatched: friendly 404 rather than a silent redirect.
+  { path: '*', element: <PageError variant="not-found" /> },
 ]);
 
 export function Router() {
-  return <RouterProvider router={router} />;
+  return (
+    <AppErrorBoundary>
+      <RouterProvider router={router} />
+    </AppErrorBoundary>
+  );
 }
