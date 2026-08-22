@@ -77,7 +77,7 @@ export function createApp(container: Container): Express {
     res.status(200).json({
       name: 'personal-finance-app',
       status: 'ok',
-      docs: '/healthz',
+      health: '/healthz',
       note: 'This is the API. The web app runs separately.',
     });
   });
