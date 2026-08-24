@@ -10,6 +10,7 @@ const logger = pino({
           options: { colorize: true, translateTime: 'SYS:HH:MM:ss.l' },
         }
       : undefined,
+  // Keep this list in sync with any new PII fields — add the path here as they land.
   redact: {
     paths: [
       'password',
