@@ -242,7 +242,7 @@ export function createTransactionsRepo(pool: Pool): TransactionsRepo {
         values.push(limit);
       }
 
-      const { rows } = await (executor ?? pool).query<ExportRow>(
+      const { rows } = await executor.query<ExportRow>(
         `SELECT
            to_char(t.date, 'YYYY-MM-DD') AS date,
            a.name AS account_name,
