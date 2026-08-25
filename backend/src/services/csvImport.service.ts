@@ -204,13 +204,8 @@ export function createCsvImportService(deps: CsvImportServiceDeps) {
       new Set(merged.map((r) => r.categoryId).filter((v): v is string => v !== null)),
     );
     if (uniqueCatIds.length > 0) {
-      const { rows } = await pool.query<{ count: string }>(
-        `SELECT COUNT(*)::text AS count
-         FROM categories
-         WHERE user_id = $1 AND id = ANY($2::uuid[])`,
-        [userId, uniqueCatIds],
-      );
-      if (Number(rows[0]?.count ?? '0') !== uniqueCatIds.length) {
+      const owned = await categoriesRepo.countOwnedByIds(userId, uniqueCatIds);
+      if (owned !== uniqueCatIds.length) {
         throw new NotFoundError('Category');
       }
     }

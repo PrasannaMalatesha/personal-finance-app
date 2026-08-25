@@ -18,6 +18,12 @@ export interface CategoriesRepo {
     userId: string,
     executor?: Executor,
   ): Promise<CategoryRow | null>;
+  /** How many of `ids` belong to this user — for batch ownership checks. */
+  countOwnedByIds(
+    userId: string,
+    ids: readonly string[],
+    executor?: Executor,
+  ): Promise<number>;
   create(
     input: {
       userId: string;
@@ -73,6 +79,17 @@ export function createCategoriesRepo(pool: Pool): CategoriesRepo {
         [id, userId],
       );
       return rows[0] ?? null;
+    },
+
+    async countOwnedByIds(userId, ids, executor = pool) {
+      if (ids.length === 0) return 0;
+      const { rows } = await executor.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count
+         FROM categories
+         WHERE user_id = $1 AND id = ANY($2::uuid[])`,
+        [userId, [...ids]],
+      );
+      return Number(rows[0]?.count ?? '0');
     },
 
     async create(
