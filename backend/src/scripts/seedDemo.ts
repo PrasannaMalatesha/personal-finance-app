@@ -86,11 +86,11 @@ async function main(): Promise<void> {
 
   // 4. Accounts — raw SQL for speed; not going through HTTP idempotency layer.
   const accountRows = await pool.query<{ id: string }>(
-    `INSERT INTO accounts (user_id, name, type, opening_balance)
+    `INSERT INTO accounts (user_id, name, type, opening_balance, currency)
      VALUES
-       ($1, 'Chase Checking',     'checking',    '2500.00'),
-       ($1, 'HDFC Savings',       'savings',     '8000.00'),
-       ($1, 'Amex Everyday',      'credit_card', '0.00')
+       ($1, 'Chase Checking',     'checking',    '2500.00', 'USD'),
+       ($1, 'HDFC Savings',       'savings',     '8000.00', 'USD'),
+       ($1, 'Amex Everyday',      'credit_card', '0.00',    'USD')
      RETURNING id`,
     [userId],
   );
