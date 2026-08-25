@@ -18,7 +18,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DownloadIcon from '@mui/icons-material/FileDownloadOutlined';
 import { downloadTransactionsCsv } from './transactionsApi';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
-import { Link as RouterLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { EmptyState } from '../../shared/components/EmptyState';
 import { PageLoader } from '../../shared/components/PageLoader';
 import { MoneyCell } from '../../shared/components/MoneyCell';
@@ -37,6 +37,7 @@ import { flags } from '../../flags';
 export function TransactionsPage() {
   const { user } = useAuth();
   const currency = user?.baseCurrency ?? 'USD';
+  const navigate = useNavigate();
   const accounts = useAccounts();
   const categories = useCategories();
 
@@ -154,10 +155,7 @@ export function TransactionsPage() {
           description="Transactions belong to an account. Create at least one account, then come back here."
           action={{
             label: 'Go to Accounts',
-            onClick: () => {
-              // Navigate via a plain link — no need for useNavigate here.
-              (document.querySelector('a[data-nav="accounts"]') as HTMLAnchorElement | null)?.click();
-            },
+            onClick: () => navigate('/accounts'),
           }}
         />
       )}
@@ -276,11 +274,6 @@ export function TransactionsPage() {
           onDismiss={() => setRuleSuggestion(null)}
         />
       )}
-
-      {/* Hidden link the empty-state CTA clicks (kept simple to avoid another useNavigate). */}
-      <RouterLink to="/accounts" data-nav="accounts" style={{ display: 'none' }}>
-        accounts
-      </RouterLink>
     </Stack>
   );
 }
