@@ -232,6 +232,41 @@ Net across the pass: **−22 lines**. The takeaway worth stating out loud: on a
 codebase that's already clean, the right optimization pass mostly *deletes* and
 mostly *declines*.
 
+**Second sweep — the parts not yet read** (accounts, auth, budgets, categories,
+rules, fx, oauth on the backend; the remaining frontend pages). Method: grep the
+whole surface for concrete, gradeable issues, then read only what lights up.
+
+- **Index audit** — the highest-value thing to check, done against the *live* DB
+  (`pg_indexes`), not just the migrations. Every hot query filter is covered:
+  transactions have `(account_id, date DESC)` for the list, a partial index on
+  `category_id`, the `pg_trgm` GIN on `description` for search, the
+  `(account_id, date, amount, description)` composite for duplicate detection, and
+  partial unique/plain indexes on `plaid_transaction_id` and `recurring_group_id`;
+  budgets on `(user_id, month)`; refresh tokens on the hashed token + a partial
+  user index. **Nothing missing.** Being able to say "here's how I verified every
+  hot filter is indexed" is worth more than any single index.
+- **auth.service** — 32 `await`s, but every one is a *dependent* step (find user →
+  verify password → issue token; or the refresh rotation find-for-update → revoke →
+  re-issue). No parallelizable independent reads, so no `Promise.all` win. Correctly
+  sequential — a security path where ordering is the point.
+- **SQL-in-service outlier** — the batch category-ownership check in `csvImport`
+  was the *one* place raw SQL lived in a service instead of a repository (grep of
+  the whole services dir confirmed it — the only other raw queries are the Plaid
+  sync loop that's deliberately left). Extracted it to
+  `categoriesRepo.countOwnedByIds` so the "repositories own all SQL" claim is
+  actually true. Covered by the existing import-commit tests (happy path +
+  unowned-category → 404).
+
+**Non-issues correctly left alone:** `SELECT *` on single-row PK lookups (typed
+Row interfaces already consume every column; rewriting 18 sites is risk for no
+gain), large-but-not-complex components, and `key={r.index}` in the CSV review
+step (that's the row's own stable line number, not the `key={mapIndex}`
+anti-pattern).
+
+**End of the road.** After two sweeps the well is dry: the remaining "findings"
+would all be manufactured work. The honest signal of a mature codebase is that a
+thorough optimization pass returns *few* changes and a lot of justified declines.
+
 ### 5.2 `seed:demo` NOT-NULL bug — root cause
 
 **Symptom:** `npm run seed:demo` crashed at account creation:
