@@ -216,16 +216,6 @@ export function createDashboardRepo(pool: Pool): DashboardRepo {
       return rows;
     },
 
-    /**
-     * Net worth = sum(account.opening_balance) + cumulative transaction flow
-     * up to and including each month. Computed from source data every call
-     * (I3: no derived money is cached). One month-end value per generated
-     * month, no gaps.
-     *
-     * For a user with N accounts and T transactions, this runs one subquery
-     * per generated month — O(N + T) per row, O(months × T) total. Fine at
-     * the sizes v1 targets (~5k tx demo dataset in <500ms).
-     */
     async summaryForMonthByCurrency(userId, month, executor = pool) {
       const { rows } = await executor.query<SummaryByCurrencyRow>(
         `SELECT
@@ -306,7 +296,7 @@ export function createDashboardRepo(pool: Pool): DashboardRepo {
          SELECT
            to_char(m.month, 'YYYY-MM') AS month,
            a.currency,
-           (a_opening.opening + COALESCE(
+           (a.opening_balance + COALESCE(
              (SELECT SUM(t.amount)
               FROM transactions t
               WHERE t.account_id = a.id
@@ -314,7 +304,6 @@ export function createDashboardRepo(pool: Pool): DashboardRepo {
            ))::numeric(14,2)::text AS net_worth
          FROM months m
          CROSS JOIN accounts a
-         JOIN LATERAL (SELECT a.opening_balance AS opening) a_opening ON TRUE
          WHERE a.user_id = $3
          ORDER BY m.month ASC, a.currency ASC`,
         [endMonth, months, userId],
@@ -339,6 +328,16 @@ export function createDashboardRepo(pool: Pool): DashboardRepo {
       );
     },
 
+    /**
+     * Net worth = sum(account.opening_balance) + cumulative transaction flow
+     * up to and including each month. Computed from source data every call
+     * (I3: no derived money is cached). One month-end value per generated
+     * month, no gaps.
+     *
+     * For a user with N accounts and T transactions, this runs one subquery
+     * per generated month — O(N + T) per row, O(months × T) total. Fine at
+     * the sizes v1 targets (~5k tx demo dataset in <500ms).
+     */
     async netWorth(userId, endMonth, months, executor = pool) {
       const { rows } = await executor.query<NetWorthRow>(
         `WITH months AS (

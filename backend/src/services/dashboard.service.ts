@@ -20,20 +20,6 @@ function currentMonthAnchor(): string {
   return `${y}-${m}-01`;
 }
 
-/**
- * Sum money strings by going through integer cents — avoids IEEE-754 drift
- * when combining ~10 category slices into rollup buckets. Values in this app
- * are at demo-scale (<$10k), well within safe integer range even at cents.
- */
-function toCents(s: string): number {
-  return Math.round(Number(s) * 100);
-}
-function fromCents(c: number): string {
-  const sign = c < 0 ? '-' : '';
-  const abs = Math.abs(c);
-  return `${sign}${Math.floor(abs / 100)}.${String(abs % 100).padStart(2, '0')}`;
-}
-
 export interface DashboardServiceDeps {
   dashboardRepo: DashboardRepo;
   categoriesRepo: CategoriesRepo;
@@ -177,19 +163,19 @@ export function createDashboardService(deps: DashboardServiceDeps) {
     // key = categoryId OR "uncat" sentinel for null-category slices
     const rollup = new Map<
       string,
-      { categoryId: string | null; name: string; color: string; cents: number }
+      { categoryId: string | null; name: string; color: string; amount: Decimal }
     >();
     for (const s of slices) {
       if (s.categoryId === null) {
         // Uncategorized stays its own slice — no parent to roll into.
         const existing = rollup.get('uncat');
-        if (existing) existing.cents += toCents(s.amount);
+        if (existing) existing.amount = existing.amount.plus(s.amount);
         else
           rollup.set('uncat', {
             categoryId: null,
             name: s.categoryName,
             color: s.color,
-            cents: toCents(s.amount),
+            amount: new Decimal(s.amount),
           });
         continue;
       }
@@ -197,7 +183,7 @@ export function createDashboardService(deps: DashboardServiceDeps) {
       const rootDisplay = display.get(rootId);
       const existing = rollup.get(rootId);
       if (existing) {
-        existing.cents += toCents(s.amount);
+        existing.amount = existing.amount.plus(s.amount);
       } else {
         rollup.set(rootId, {
           categoryId: rootId,
@@ -205,7 +191,7 @@ export function createDashboardService(deps: DashboardServiceDeps) {
           // to it, fall back to the slice's own label.
           name: rootDisplay?.name ?? s.categoryName,
           color: rootDisplay?.color ?? s.color,
-          cents: toCents(s.amount),
+          amount: new Decimal(s.amount),
         });
       }
     }
@@ -215,7 +201,7 @@ export function createDashboardService(deps: DashboardServiceDeps) {
         categoryId: r.categoryId,
         categoryName: r.name,
         color: r.color,
-        amount: fromCents(r.cents),
+        amount: r.amount.toFixed(2),
       }))
       .sort((a, b) => Number(b.amount) - Number(a.amount));
   }
