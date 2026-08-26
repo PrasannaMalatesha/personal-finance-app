@@ -15,7 +15,10 @@ const isProd = env.NODE_ENV === 'production';
 
 const accessCookieOpts: CookieOptions = {
   httpOnly: true,
-  sameSite: 'lax',
+  // Prod is split-origin (frontend on Vercel, API on Render), so auth cookies
+  // must be SameSite=None to be sent cross-site — which browsers only accept
+  // with Secure. Dev is same-origin via the Vite proxy, so Lax is fine there.
+  sameSite: isProd ? 'none' : 'lax',
   secure: isProd,
   domain: env.COOKIE_DOMAIN || undefined,
   path: '/',
