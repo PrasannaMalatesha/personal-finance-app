@@ -6,8 +6,8 @@ Full-stack personal finance app: multiple accounts, manual + CSV transaction ent
 
 ## Live demo
 
-- **App:** _(add Vercel URL after first deploy)_
-- **API health:** _(add Render URL /healthz)_
+- **App:** https://personal-finance-app-x1nq-mu.vercel.app
+- **API health:** https://personal-finance-api-t0ni.onrender.com/healthz
 - **Demo login:** `demo@finance.app` / `demo1234` — seeded by `npm run seed:demo` on every prod deploy (idempotent).
 
 > The demo user has 6 months of realistic transactions across 3 accounts, active budgets for the current month, and an intentionally over-budget Transport category so the dashboard shows the "over budget" state.
