@@ -376,3 +376,76 @@ S3+CloudFront — the layering and data model are unchanged.
 **When you actually switch:** custom networking/compliance needs, cost
 optimization at high scale, or an existing platform team — not a raw user-count
 threshold.
+
+---
+
+## 9. Deploy war stories
+
+The first production deploy (Neon + Render + Vercel) surfaced five failures worth
+keeping — each is a "tell me about a hard deployment bug" answer. Pattern for all:
+**symptom → root cause → fix → lesson.**
+
+### 9.1 The build that couldn't find its own build tools
+**Symptom:** Render build failed — `sh: 1: node-pg-migrate: not found`.
+**Root cause:** `render.yaml` sets `NODE_ENV=production`, and modern `npm ci`
+omits `devDependencies` under that. But the build *needs* devDeps — `typescript`
+(for `tsc`) and `node-pg-migrate` (for migrations) both live there. It passed
+GitHub CI because CI doesn't set `NODE_ENV=production`.
+**Fix:** `npm ci --include=dev` in the build command. Runtime
+(`node dist/server.js`) still only uses `dependencies` + the compiled `dist/`.
+**Lesson:** build-time tools in `devDependencies` + `NODE_ENV=production` is a
+classic trap, and a CI that doesn't mirror the prod env variable *hides* it.
+
+### 9.2 Login worked in curl, failed in the browser
+**Symptom:** `curl` login returned 200 with cookies; in the browser, login
+"succeeded" but every next request was unauthenticated.
+**Root cause:** cookies were `SameSite=Lax`. Frontend (Vercel) and API (Render)
+are different sites, so the browser refuses to send Lax cookies on cross-site
+XHR. `curl` doesn't enforce SameSite, so the CLI test gave false confidence.
+**Fix:** `sameSite: isProd ? 'none' : 'lax'` (None requires Secure, already set;
+dev stays Lax via the Vite proxy).
+**Lesson:** split-origin cookie auth needs *four* things aligned — cookie
+`SameSite=None; Secure`, CORS `credentials:true` with an exact origin, and the
+frontend `fetch(credentials:'include')`. And `curl` is not a proxy for browser
+cookie behavior.
+
+### 9.3 The first deploy that canceled itself
+**Symptom:** Vercel showed "Deployment canceled" on the very first deploy.
+**Root cause:** the monorepo build filter `git diff --quiet HEAD^ HEAD ./`
+(skip if the frontend didn't change) — but the commit that triggered it was a
+backend-only change, so it correctly-but-unhelpfully skipped the *initial* build.
+**Fix:** guard on `VERCEL_GIT_PREVIOUS_SHA` — build unconditionally when there's
+no prior successful deploy, and diff against the last *deployed* SHA (not just
+`HEAD^`) so multi-commit pushes are handled right.
+**Lesson:** "skip if my folder didn't change" logic must special-case the
+no-previous-deploy state, or it starves its own first build.
+
+### 9.4 CORS trusting a placeholder, and the boot-order deadlock
+**Symptom:** browser API calls blocked; backend returned
+`access-control-allow-origin: https://placeholder.vercel.app`.
+**Root cause:** two linked issues. (1) The backend requires `FRONTEND_ORIGIN`
+(a valid URL) to boot — but the real Vercel URL doesn't exist until the frontend
+deploys, which itself wants the backend URL. A **boot-order deadlock**. (2) CORS
+matches the origin as an *exact string*, so a trailing slash or the placeholder
+silently fails.
+**Fix:** boot the backend with a placeholder URL (valid, so it starts + passes
+health checks), deploy the frontend, then set `FRONTEND_ORIGIN` to the real
+Vercel origin (no trailing slash) and redeploy.
+**Lesson:** circular env dependencies between services need a deliberate
+bootstrap order; and an "origin" is an exact match, not a fuzzy one.
+
+### 9.5 Node picked the newest, not the LTS
+**Symptom:** Render logs — `Using Node.js version 26.7.0`.
+**Root cause:** `engines.node: ">=20.0.0"` is a *floor*, not a pin, so Render
+installed the newest available — an odd-numbered, non-LTS, bleeding-edge Node,
+while CI tested on Node 20.
+**Fix:** a `.node-version` file pinning `20` (matches CI → deploy what you test),
+in both `backend/` (Render) and `frontend/` (Vercel).
+**Lesson:** a version *range* is not a pin. Pin the actual runtime for
+reproducible builds and test/prod parity — you want prod running exactly the
+Node your test suite ran on.
+
+**Meta-lesson across all five:** each bug passed one check and failed another —
+CI hid the NODE_ENV trap, curl hid the cookie trap, the happy path hid the CORS
+deadlock. The fix each time was to test in the environment that actually matters,
+not the convenient one.
