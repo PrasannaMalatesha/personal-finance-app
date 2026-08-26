@@ -7,7 +7,11 @@ const isProd = env.NODE_ENV === 'production';
 
 const accessCookieOpts: CookieOptions = {
   httpOnly: true,
-  sameSite: 'lax',
+  // Split-origin in prod (frontend Vercel, API Render): the auth tokens are
+  // read by frontend XHR cross-site, so SameSite=None (with Secure) is required.
+  // Dev stays Lax (same-origin via the Vite proxy). The state cookie below is
+  // deliberately left Lax — it's read on a top-level redirect, not XHR.
+  sameSite: isProd ? 'none' : 'lax',
   secure: isProd,
   domain: env.COOKIE_DOMAIN || undefined,
   path: '/',
