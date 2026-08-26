@@ -339,7 +339,40 @@ Quick-reference for common questions:
 ## 7. Still open (blocked on external accounts)
 
 1. **Deploy** — Neon → Render → Vercel; then fill README URL placeholders and
-   seed a prod demo user (now unblocked, §5.2).
+   seed a prod demo user (now unblocked, §5.2). *Progress:* Neon provisioned +
+   schema migrated + demo data seeded; Render/Vercel await account setup.
 2. **Resend** — account + domain verification + env vars in Render (§5.3).
 3. **Plaid** — real `client_id` + secret in Render.
 4. **Google OAuth** — real client id/secret + registered redirect URIs.
+
+---
+
+## 8. How this maps to big-corp infrastructure
+
+The deploy stack here is **PaaS** (Platform-as-a-Service): Neon, Render, Vercel
+hide the infrastructure so a solo dev ships fast. At large scale, teams trade
+that convenience for **IaaS + orchestration** — for control, unit cost, and
+compliance, *not* because PaaS can't handle the user count (Vercel/Render serve
+millions). The architecture doesn't change; only the substrate under it does.
+
+| This stack | Role | Big-corp equivalent (AWS / Azure / GCP) |
+|---|---|---|
+| Vercel (frontend) | Build SPA + global CDN + CI/CD | Build in CI → **S3 + CloudFront** / Blob + Front Door / GCS + Cloud CDN |
+| Render (backend) | Run a container, expose a URL, autoscale | **Kubernetes (EKS/AKS/GKE)** or managed containers (**ECS/Fargate**, Cloud Run, Container Apps); serverless → **Lambda + API Gateway** |
+| Neon (database) | Managed serverless Postgres | **RDS / Aurora**, Azure DB for Postgres, Cloud SQL / AlloyDB + read replicas, PgBouncer, sharding, Redis |
+
+**The glue PaaS hides** (owned by a platform/SRE team): IaC (Terraform/Pulumi),
+GitOps deploys (ArgoCD/Spinnaker), load balancers + autoscaling (HPA) + WAF +
+Route 53, observability (Datadog / Prometheus+Grafana / OpenTelemetry), secrets
+(Vault/Secrets Manager), multi-AZ / multi-region HA.
+
+**Interview one-liner:** *Kubernetes is a cost you pay for flexibility you may
+not need.* PaaS buys velocity; K8s/IaaS buys control and cost-efficiency at
+scale, but you own the ops burden (you need an SRE team). Because this backend
+is **12-factor** (stateless, config via env, DB over a URL), it ports cleanly:
+containerize it, point `DATABASE_URL` at RDS, push the frontend build to
+S3+CloudFront — the layering and data model are unchanged.
+
+**When you actually switch:** custom networking/compliance needs, cost
+optimization at high scale, or an existing platform team — not a raw user-count
+threshold.
