@@ -86,7 +86,7 @@ flowchart LR
     Rp -->|"pg (parameterized SQL)"| DB
 ```
 
-Layered so each concern has one reason to change (TRD §2.1): routes parse HTTP, controllers orchestrate, services hold business logic, repos own SQL. See [TRD.md](TRD.md) for the full data model, API contract, sequence diagrams, and consistency invariants; [PRD.md](PRD.md) for product scope by phase (v1/v2/v3); [ENGINEERING-NOTES.md](ENGINEERING-NOTES.md) for the reasoning behind the key decisions and a running work log.
+Layered so each concern has one reason to change (TRD §2.1): routes parse HTTP, controllers orchestrate, services hold business logic, repos own SQL. See [TRD.md](TRD.md) for the full data model, API contract, sequence diagrams, and consistency invariants; [PRD.md](PRD.md) for product scope by phase (v1/v2/v3); [ENGINEERING-NOTES.md](ENGINEERING-NOTES.md) for the reasoning behind the key decisions and a running work log; [CODEBASE.md](CODEBASE.md) for a full code-navigation map (every module, the API surface, the DI graph, data model).
 
 ## Quickstart (local)
 
