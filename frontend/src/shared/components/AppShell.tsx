@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import {
   AppBar,
   Avatar,
@@ -16,6 +16,7 @@ import {
 import LogoutIcon from '@mui/icons-material/LogoutOutlined';
 import SettingsIcon from '@mui/icons-material/SettingsOutlined';
 import { ColorModeToggle } from './ColorModeToggle';
+import { PageLoader } from './PageLoader';
 import { Link as RouterLink, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { brand } from '../../app/theme';
 import { flags } from '../../flags';
@@ -195,7 +196,9 @@ export function AppShell() {
         </Toolbar>
       </AppBar>
       <Container component="main" sx={{ py: 4, flexGrow: 1 }} className="pfa-fade-up">
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </Container>
     </Box>
   );
