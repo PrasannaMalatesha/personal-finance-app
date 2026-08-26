@@ -20,6 +20,11 @@ services:
     buildCommand: npm ci && npm run migrate:up:ci && npm run build
     startCommand: node dist/server.js
     healthCheckPath: /healthz
+    # Monorepo: skip a backend deploy when a push only touches frontend/.
+    # Any change to backend/ or root config (this file) still rebuilds.
+    buildFilter:
+      ignoredPaths:
+        - frontend/**
     envVars:
       - key: NODE_ENV
         value: production
