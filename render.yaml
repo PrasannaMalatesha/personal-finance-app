@@ -38,19 +38,21 @@ services:
         value: 3001
       # Feature flags default off; flip them in the dashboard when a v2
       # feature is ready to enable in prod.
+      # v2/v3 features with no external dependency — enabled in prod.
+      - key: FLAG_RECURRING
+        value: 'true'
+      - key: FLAG_MULTI_CURRENCY
+        value: 'true'
+      - key: FLAG_NET_WORTH
+        value: 'true'
+      - key: FLAG_HIERARCHICAL_CATEGORIES
+        value: 'true'
+      - key: FLAG_RULE_LEARNING
+        value: 'true'
+      # These need real credentials (see the secret block below) — off until set.
       - key: FLAG_PLAID
         value: 'false'
-      - key: FLAG_RECURRING
-        value: 'false'
-      - key: FLAG_MULTI_CURRENCY
-        value: 'false'
-      - key: FLAG_NET_WORTH
-        value: 'false'
-      - key: FLAG_HIERARCHICAL_CATEGORIES
-        value: 'false'
       - key: FLAG_PASSWORD_RESET
-        value: 'false'
-      - key: FLAG_RULE_LEARNING
         value: 'false'
       - key: FLAG_OAUTH
         value: 'false'
