@@ -17,7 +17,11 @@ services:
     rootDir: backend
     # Migrations run in build so a failed migration fails the deploy —
     # never end up with a running server pointed at the wrong schema.
-    buildCommand: npm ci && npm run migrate:up:ci && npm run build
+    # --include=dev: the build needs devDependencies (typescript for `tsc`,
+    # node-pg-migrate for migrations). NODE_ENV=production would otherwise make
+    # `npm ci` omit them. Runtime (`node dist/server.js`) only needs the compiled
+    # output + `dependencies`, so this doesn't bloat what actually serves traffic.
+    buildCommand: npm ci --include=dev && npm run migrate:up:ci && npm run build
     startCommand: node dist/server.js
     healthCheckPath: /healthz
     # Monorepo: skip a backend deploy when a push only touches frontend/.
