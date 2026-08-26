@@ -212,13 +212,21 @@ Features: `auth`, `accounts`, `transactions`, `categories`, `rules`, `budgets`,
 gate by auth state. v2/v3 routes registered only when the flag is on (mirrors the
 backend mount). See ENGINEERING-NOTES §5.1 for the bundle-splitting work.
 
-### 4.3 Server state — [shared/api/client.ts](frontend/src/shared/api/client.ts)
+### 4.3 Server state + forms
 
 **TanStack Query owns all server state** — there's almost no client store. The
 `client.ts` fetch wrapper sends `credentials: 'include'`, and on a 401 it
 transparently calls `/auth/refresh` once (single-flight `refreshPromise`) and
 retries. Lists use `useInfiniteQuery` (cursor pagination). Mutations invalidate
-the relevant query keys `onSuccess`.
+the relevant query keys `onSuccess`. Per feature: `Xapi.ts` (typed `apiFetch`
+wrappers) + `useX.ts` (query/mutation hooks) + `schemas.ts` (Zod + TS types).
+
+**Forms** use **React Hook Form + `zodResolver`** (the frontend `schemas.ts`
+Zod schemas mirror the backend contracts) — see `TransactionFormDialog`,
+`LoginPage`, `SignupPage`. Client-side idempotency keys are minted with
+`crypto.randomUUID()` for money POSTs. Destructive actions use **Sonner**
+toasts with an **Undo** action (delete a transaction → toast re-creates it),
+and search inputs debounce (300ms) before committing to the query filter.
 
 ### 4.4 Theming — [app/theme.ts](frontend/src/app/theme.ts), [app/tokens.ts](frontend/src/app/tokens.ts)
 
